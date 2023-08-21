@@ -1,0 +1,29 @@
+{
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo"
+    }
+  },
+  "NetworkTables": {
+    "transitory": {
+      "Shuffleboard": {
+        "Drivetrain": {
+          "Back Left Module": {
+            "open": true
+          },
+          "Back Right Module": {
+            "open": true
+          },
+          "Front Left Module": {
+            "open": true
+          },
+          "Front Right Module": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
+      }
+    }
+  }
+}
