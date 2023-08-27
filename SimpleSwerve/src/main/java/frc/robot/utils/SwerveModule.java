@@ -17,6 +17,10 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import frc.robot.Constants.FalconConstants;
 
 public class SwerveModule {
+    private static final int ENCODER_RESET_ITERATIONS = 500;
+    private static final double ENCODER_RESET_MAX_ANGULAR_VELOCITY = Math.toRadians(0.5);
+    private double resetIteration = 0;
+
     private static final int CAN_TIMEOUT_MS = 250;
     private static final int STATUS_FRAME_GENERAL_PERIOD_MS = 250;
     
@@ -36,7 +40,7 @@ public class SwerveModule {
     private SwerveMotorConfiguration m_driveMotorOptions, m_steerMotorOptions;
 
     private double m_referenceAngleRadians;
-
+    private double m_commandedAngleRadians;
 
     public SwerveModule(ShuffleboardLayout container, SwerveModuleConfiguration configuration, SwerveMotorConfiguration driveMotorOptions, SwerveMotorConfiguration steerMotorOptions, CANDeviceID driveMotorID, CANDeviceID steerMotorID, CANDeviceID steerEncodeID, double steerOffset) {
         m_driveMotor = new WPI_TalonFX(driveMotorID.id, driveMotorID.bus);
@@ -149,15 +153,39 @@ public class SwerveModule {
         if (m_steerMotorOptions.hasVoltageCompensation()) {
             m_steerMotor.enableVoltageCompensation(true);
         }
-        m_steerMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, CAN_TIMEOUT_MS);
+        CtreUtils.checkCtreError(m_steerMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, CAN_TIMEOUT_MS),
+        "Set selected sensor");
         m_steerMotor.setSensorPhase(true);
         m_steerMotor.setInverted(m_configuration.isSteerInverted() ? TalonFXInvertType.CounterClockwise : TalonFXInvertType.Clockwise);
         m_steerMotor.setNeutralMode(NeutralMode.Brake);
 
-        m_steerMotor.setSelectedSensorPosition(getAbsoluteAngle() / m_steerMotorSensorPositionCoefficient, 0, CAN_TIMEOUT_MS);
+        double currentAngle = getAbsoluteAngle();
+        resetSteerPositionSensor();
+        m_referenceAngleRadians = currentAngle; // MDS
+        System.out.println("Init angle: " + currentAngle);
+        System.out.println("Init angle: " + Math.toDegrees(currentAngle));
+
+        double sensorPosition = m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
+        System.out.println("Post-set motor sensor position: " + Math.toDegrees(sensorPosition));
 
         // Reduce CAN status frame rates
         m_steerMotor.setStatusFramePeriod(StatusFrameEnhanced.Status_1_General, STATUS_FRAME_GENERAL_PERIOD_MS, CAN_TIMEOUT_MS);
+
+        // MDS: Set initial position (even though motor disabled?)
+        // if (m_steerMotorOptions.hasPidConstants() || m_steerMotorOptions.hasMotionMagic()) {
+        //     m_steerMotor.set(TalonFXControlMode.Position, currentAngle / m_steerMotorSensorPositionCoefficient);
+        // }
+    }
+
+    /**
+     * Synchronize the steer motor's internal position with the absolute encoder by setting the 
+     * motor's internal sensor to the angle read by the absolute encoder. This should only be called
+     * when the motor is relatively idle.
+     */
+    public void resetSteerPositionSensor() {
+        double absoluteAngle = getAbsoluteAngle();
+        CtreUtils.checkCtreError(m_steerMotor.setSelectedSensorPosition(absoluteAngle / m_steerMotorSensorPositionCoefficient),
+        "Reset motor sensor position");
     }
 
 
@@ -230,6 +258,7 @@ public class SwerveModule {
         container.addNumber("Absolute Encoder Angle", () -> Math.toDegrees(getAbsoluteAngle()));
         container.addNumber("Current Angle", () -> Math.toDegrees(getStateAngle()));
         container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()));
+        container.addNumber("Commanded Angle", () -> Math.toDegrees(m_commandedAngleRadians));
     }
 
     /**
@@ -270,6 +299,23 @@ public class SwerveModule {
         assertZeroTo2Pi(referenceAngleRadians);
 
         double currentAngleRadians = m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
+
+        if (false) {
+            // Reset the NEO's encoder periodically when the module is not rotating.
+            // Sometimes (~5% of the time) when we initialize, the absolute encoder isn't fully set up, and we don't
+            // end up getting a good reading. If we reset periodically this won't matter anymore.
+            if (m_steerMotor.getSelectedSensorVelocity() * m_steerMotorSensorPositionCoefficient < ENCODER_RESET_MAX_ANGULAR_VELOCITY) {
+                if (++resetIteration >= ENCODER_RESET_ITERATIONS) {
+                    resetIteration = 0;
+                    double absoluteAngle = getAbsoluteAngle();
+                    m_steerMotor.setSelectedSensorPosition(absoluteAngle / m_steerMotorSensorPositionCoefficient);
+                    currentAngleRadians = absoluteAngle;
+                }
+            } else {
+                resetIteration = 0;
+            }
+        }
+
         double currentAngleRadiansMod = currentAngleRadians % (2.0 * Math.PI);
         if (currentAngleRadiansMod < 0.0) {
             currentAngleRadiansMod += 2.0 * Math.PI;
@@ -286,8 +332,8 @@ public class SwerveModule {
         TalonFXControlMode controlMode = m_steerMotorOptions.hasMotionMagic() ? TalonFXControlMode.MotionMagic : TalonFXControlMode.Position;
         m_steerMotor.set(controlMode, adjustedReferenceAngleRadians / m_steerMotorSensorPositionCoefficient);
 
-        // m_referenceAngleRadians = referenceAngleRadians;
-        m_referenceAngleRadians = adjustedReferenceAngleRadians;
+        m_referenceAngleRadians = referenceAngleRadians;
+        m_commandedAngleRadians = adjustedReferenceAngleRadians;
     }
 
     public void assertZeroTo2Pi(double angle) {

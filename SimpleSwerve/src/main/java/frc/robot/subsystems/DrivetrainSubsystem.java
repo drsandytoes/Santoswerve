@@ -146,6 +146,16 @@ public class DrivetrainSubsystem extends SubsystemBase {
     m_pigeon.setYaw(0.0);
   }
 
+  /**
+   * Resets the steer motor's internal position sensor to match the absolute encoder
+   */
+  public void resetSteerPositionSensors() {
+    m_frontLeftModule.resetSteerPositionSensor();
+    m_frontRightModule.resetSteerPositionSensor();
+    m_backLeftModule.resetSteerPositionSensor();
+    m_backRightModule.resetSteerPositionSensor();
+  }
+
   public Rotation2d getGyroscopeRotation() {
     return Rotation2d.fromDegrees(m_pigeon.getYaw());
   }
