@@ -19,7 +19,7 @@ import frc.robot.Constants.FalconConstants;
 public class SwerveModule {
     private static final int ENCODER_RESET_ITERATIONS = 500;
     private static final double ENCODER_RESET_MAX_ANGULAR_VELOCITY = Math.toRadians(0.5);
-    private double resetIteration = 0;
+    private int resetIteration = 0;
 
     private static final int CAN_TIMEOUT_MS = 250;
     private static final int STATUS_FRAME_GENERAL_PERIOD_MS = 250;
@@ -210,7 +210,6 @@ public class SwerveModule {
      * @param steerAngle Angle fo the module's wheel
      */
     public void set(double driveVoltage, double steerAngle) {
-        assertZeroTo2Pi(steerAngle);
         steerAngle %= (2.0 * Math.PI);
         if (steerAngle < 0.0) {
             steerAngle += 2.0 * Math.PI;
@@ -224,7 +223,6 @@ public class SwerveModule {
             steerAngle += 2.0 * Math.PI;
         }
         difference = steerAngle - getStateAngle(); // Recalculate difference
-        assertPlusMinusPi(difference);
 
         // If the difference is greater than 90 deg or less than -90 deg the drive can be inverted so the total
         // movement of the module is less than 90 deg
@@ -233,8 +231,6 @@ public class SwerveModule {
             steerAngle += Math.PI;
             driveVoltage *= -1.0;
         }
-
-        assertZeroTo2Pi(steerAngle);
 
         setReferenceVoltage(driveVoltage);
         setReferenceAngle(steerAngle);
@@ -296,24 +292,20 @@ public class SwerveModule {
      * @param referenceAngleRadians Target / reference angle in radians
      */
     public void setReferenceAngle(double referenceAngleRadians) {
-        assertZeroTo2Pi(referenceAngleRadians);
-
         double currentAngleRadians = m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
 
-        if (false) {
-            // Reset the NEO's encoder periodically when the module is not rotating.
-            // Sometimes (~5% of the time) when we initialize, the absolute encoder isn't fully set up, and we don't
-            // end up getting a good reading. If we reset periodically this won't matter anymore.
-            if (m_steerMotor.getSelectedSensorVelocity() * m_steerMotorSensorPositionCoefficient < ENCODER_RESET_MAX_ANGULAR_VELOCITY) {
-                if (++resetIteration >= ENCODER_RESET_ITERATIONS) {
-                    resetIteration = 0;
-                    double absoluteAngle = getAbsoluteAngle();
-                    m_steerMotor.setSelectedSensorPosition(absoluteAngle / m_steerMotorSensorPositionCoefficient);
-                    currentAngleRadians = absoluteAngle;
-                }
-            } else {
+        // When the module has not been rotating for a while, reset the motor's position back to the angle read
+        // from the absolute encoder. This seems to be needed when the motors are first enabled, but also helps
+        // with drift over time?
+        if (m_steerMotor.getSelectedSensorVelocity() * m_steerMotorSensorPositionCoefficient < ENCODER_RESET_MAX_ANGULAR_VELOCITY) {
+            if (++resetIteration >= ENCODER_RESET_ITERATIONS) {
                 resetIteration = 0;
+                double absoluteAngle = getAbsoluteAngle();
+                m_steerMotor.setSelectedSensorPosition(absoluteAngle / m_steerMotorSensorPositionCoefficient);
+                currentAngleRadians = absoluteAngle;
             }
+        } else {
+            resetIteration = 0;
         }
 
         double currentAngleRadiansMod = currentAngleRadians % (2.0 * Math.PI);
@@ -335,14 +327,5 @@ public class SwerveModule {
         m_referenceAngleRadians = referenceAngleRadians;
         m_commandedAngleRadians = adjustedReferenceAngleRadians;
     }
-
-    public void assertZeroTo2Pi(double angle) {
-        assert(angle > -0.1 && angle < 2.0 * Math.PI + 0.1);
-    }
-
-    public void assertPlusMinusPi(double angle) {
-        assert(angle > -Math.PI - 0.1 && angle < Math.PI + 0.1);
-    }
-
 }
 

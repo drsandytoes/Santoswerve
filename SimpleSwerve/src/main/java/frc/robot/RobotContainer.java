@@ -67,7 +67,8 @@ public class RobotContainer {
     // m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
 
     m_controller.button(1).onTrue(new InstantCommand(m_drivetrainSubsystem::zeroGyroscope, m_drivetrainSubsystem));
-    m_controller.button(2).onTrue(new InstantCommand(m_drivetrainSubsystem::resetSteerPositionSensors, m_drivetrainSubsystem));
+    m_controller.button(2).onTrue(new InstantCommand(m_drivetrainSubsystem::resetSteerPositionSensors, m_drivetrainSubsystem)
+    .ignoringDisable(true));
   }
 
   /**
