@@ -1,5 +1,7 @@
 package frc.robot.utils;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.DemandType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatusFrameEnhanced;
 import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
@@ -12,14 +14,21 @@ import com.ctre.phoenix.sensors.CANCoderConfiguration;
 import com.ctre.phoenix.sensors.CANCoderStatusFrame;
 import com.ctre.phoenix.sensors.AbsoluteSensorRange;
 
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardContainer;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
+import frc.robot.Constants;
 import frc.robot.Constants.FalconConstants;
 
 public class SwerveModule {
     private static final int ENCODER_RESET_ITERATIONS = 500;
     private static final double ENCODER_RESET_MAX_ANGULAR_VELOCITY = Math.toRadians(0.5);
     private int resetIteration = 0;
+
+    public final int moduleIndex;
 
     private static final int CAN_TIMEOUT_MS = 250;
     private static final int STATUS_FRAME_GENERAL_PERIOD_MS = 250;
@@ -41,8 +50,13 @@ public class SwerveModule {
 
     private double m_referenceAngleRadians;
     private double m_commandedAngleRadians;
+    private double m_commandedSpeedMetersPerSecond;
 
-    public SwerveModule(ShuffleboardLayout container, SwerveModuleConfiguration configuration, SwerveMotorConfiguration driveMotorOptions, SwerveMotorConfiguration steerMotorOptions, CANDeviceID driveMotorID, CANDeviceID steerMotorID, CANDeviceID steerEncodeID, double steerOffset) {
+    SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(Constants.DriveTrain.kDriveMotorOptions.staticConstant, Constants.DriveTrain.kDriveMotorOptions.velocityConstant, Constants.DriveTrain.kDriveMotorOptions.staticConstant);
+
+    public SwerveModule(int moduleIndex, ShuffleboardLayout container, SwerveModuleConfiguration configuration, SwerveMotorConfiguration driveMotorOptions, SwerveMotorConfiguration steerMotorOptions, CANDeviceID driveMotorID, CANDeviceID steerMotorID, CANDeviceID steerEncodeID, double steerOffset) {
+        this.moduleIndex = moduleIndex;
+
         m_driveMotor = new WPI_TalonFX(driveMotorID.id, driveMotorID.bus);
         m_steerMotor = new WPI_TalonFX(steerMotorID.id, steerMotorID.bus);
         m_steerEncoder = new WPI_CANCoder(steerEncodeID.id, steerEncodeID.bus);
@@ -203,6 +217,49 @@ public class SwerveModule {
         return angle;
     }
 
+    /**
+     * Get the velocity and angle of the module as a SwerveModuleState object
+     * @return SwerveModuleState for this module
+     */
+    public SwerveModuleState getState() {
+        return new SwerveModuleState(getStateVelocity(), new Rotation2d(getStateAngle()));
+    }
+
+    /**
+     * Set the desired state of the module
+     * @param desiredState SwerveModuleState 
+     * @param isOpenLoop not used
+     */
+    public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop){
+        /* This is a custom optimize function, since default WPILib optimize assumes continuous controller which CTRE and Rev onboard is not */
+        desiredState = ModuleStateUtils.optimize(desiredState, getState().angle); 
+        setAngle(desiredState);
+        setSpeed(desiredState, isOpenLoop);
+    }
+
+    /**
+     * Set the speed of the module based on the desired state.
+     * @param desiredState SwerveModuleState that is desired
+     * @param isOpenLoop Is the system being driven open loop from a joystick
+     */
+    private void setSpeed(SwerveModuleState desiredState, boolean isOpenLoop) {
+        m_commandedSpeedMetersPerSecond = desiredState.speedMetersPerSecond;
+        if (isOpenLoop) {
+            double percentOutput = desiredState.speedMetersPerSecond / getMaxVelocity();
+            m_driveMotor.set(ControlMode.PercentOutput, percentOutput);
+        }
+        else {
+            double velocity = desiredState.speedMetersPerSecond / m_driveMotorSensorVelocityCoefficient;
+            m_driveMotor.set(ControlMode.Velocity, velocity, DemandType.ArbitraryFeedForward, feedforward.calculate(desiredState.speedMetersPerSecond));
+        }
+    }
+
+    private void setAngle(SwerveModuleState desiredState){
+        Rotation2d angle = (Math.abs(desiredState.speedMetersPerSecond) <= (getMaxVelocity() * 0.01)) ? new Rotation2d(m_referenceAngleRadians) : desiredState.angle; //Prevent rotating module if speed is less then 1%. Prevents Jittering.
+        m_steerMotor.set(ControlMode.Position, angle.getRadians() * m_steerMotorSensorPositionCoefficient);
+        m_referenceAngleRadians = angle.getRadians();
+        m_commandedAngleRadians = m_referenceAngleRadians;
+    }
 
     /**
      * Set the desired state of the module in terms of a drive voltage and steer angle
@@ -250,11 +307,12 @@ public class SwerveModule {
      * @param container ShuffleboardContainer to use
      */
     private void addDashboardEntries(ShuffleboardContainer container) {
-        container.addNumber("Current Velocity", () -> getStateVelocity());
+        container.addNumber("Current Velocity", this::getStateVelocity);
         container.addNumber("Absolute Encoder Angle", () -> Math.toDegrees(getAbsoluteAngle()));
         container.addNumber("Current Angle", () -> Math.toDegrees(getStateAngle()));
         container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()));
         container.addNumber("Commanded Angle", () -> Math.toDegrees(m_commandedAngleRadians));
+        container.addNumber("Commanded Velocity", () -> m_commandedSpeedMetersPerSecond);
     }
 
     /**
@@ -263,6 +321,23 @@ public class SwerveModule {
      */
     public double getStateVelocity() {
         return m_driveMotor.getSelectedSensorVelocity() * m_driveMotorSensorVelocityCoefficient;
+    }
+
+    /**
+     * Return the current distance the wheel has traveled as measured by the drive motor.
+     * @return Current wheel distance in meters
+     */
+    public double getStateDistance() {
+        double distance = m_driveMotor.getSelectedSensorPosition() * m_driveMotorSensorPositionCoefficient;
+        return distance;
+    }
+
+    /**
+     * Return the current SwerveModulePosition for this module
+     * @return SwerveModulePosition for this module
+     */
+    public SwerveModulePosition getPosition() {
+        return new SwerveModulePosition(getStateDistance(), new Rotation2d(getStateAngle()));
     }
 
     /**
@@ -327,5 +402,24 @@ public class SwerveModule {
         m_referenceAngleRadians = referenceAngleRadians;
         m_commandedAngleRadians = adjustedReferenceAngleRadians;
     }
+
+    /**
+     * Gets the drive motor free velocity in m/s
+     */
+    public double getMaxVelocity() {
+        return m_configuration.getDriveMotorFreeSpeedRPM() / 60.0 * m_configuration.getDriveReduction() * m_configuration.getWheelDiameter();
+    }
+
+    /**
+     * Gets the azimuth motor free speed angular velocity in radians/s
+     */
+    public double getMaxAngularVelocity() {
+        // v = rw => w = v / r
+        double linearSpeed =  m_configuration.getSteerMotorFreeSpeedRPM() / 60.0 * m_configuration.getSteerReduction() * m_configuration.getWheelDiameter();
+        double diameter = Math.hypot(Constants.DriveTrain.kTrackWidthMeters, Constants.DriveTrain.kWheelBaseMeters);
+
+        return linearSpeed / diameter / 2.0;
+    }
+
 }
 

@@ -18,6 +18,7 @@ public class SwerveModuleConfiguration {
     private final boolean steerInverted;
 
     private final double driveMotorFreeSpeedRPM;
+    private final double steerMotorFreeSpeedRPM;
 
     /**
      * Creates a new module configuration.
@@ -34,13 +35,15 @@ public class SwerveModuleConfiguration {
      * @param driveMotorFreeSpeed The drive motor's free speed RPM (maximum RPM)
      */
     public SwerveModuleConfiguration(double wheelDiameter, double driveReduction, boolean driveInverted,
-                               double steerReduction, boolean steerInverted, double driveMotorFreeSpeed) {
+                               double steerReduction, boolean steerInverted, double driveMotorFreeSpeed,
+                               double steerMotorFreeSpeedRPM) {
         this.wheelDiameter = wheelDiameter;
         this.driveReduction = driveReduction;
         this.driveInverted = driveInverted;
         this.steerReduction = steerReduction;
         this.steerInverted = steerInverted;
         this.driveMotorFreeSpeedRPM = driveMotorFreeSpeed;
+        this.steerMotorFreeSpeedRPM = steerMotorFreeSpeedRPM;
     }
 
     /**
@@ -87,6 +90,13 @@ public class SwerveModuleConfiguration {
      */
     public double getDriveMotorFreeSpeedRPM() {
         return driveMotorFreeSpeedRPM;
+    }
+
+    /**
+     * Gets the steer motor free speed RPM
+     */
+    public double getSteerMotorFreeSpeedRPM() {
+        return steerMotorFreeSpeedRPM;
     }
 
     @Override

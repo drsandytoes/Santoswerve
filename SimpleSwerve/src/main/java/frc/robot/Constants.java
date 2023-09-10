@@ -53,12 +53,14 @@ public final class Constants {
       true,
       (14.0 / 50.0) * (10.0 / 60.0),
       false,
+      FalconConstants.kFreeSpeedRPM,
       FalconConstants.kFreeSpeedRPM
     );
 
     public static final SwerveMotorConfiguration kDriveMotorOptions = new SwerveMotorConfiguration()
     .withCurrentLimit(80.0)
-    .withNominalVoltage(12.0);
+    .withNominalVoltage(12.0)
+    .withMotionMagicContants((1.51 / 12), (0.27 / 12), (0.32 / 12));
 
     public static final SwerveMotorConfiguration kSteerMotorOptions = new SwerveMotorConfiguration()
     .withCurrentLimit(20.0)
