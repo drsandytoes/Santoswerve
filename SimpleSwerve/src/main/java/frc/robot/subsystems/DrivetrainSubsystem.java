@@ -162,6 +162,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
     m_odometry = new SwerveDriveOdometry(m_kinematics, getGyroscopeRotation(), getModulePositions());
     fieldTab.add("Position", m_field)
+      .withPosition(0, 0)
       .withSize(9, 5);
   }
 

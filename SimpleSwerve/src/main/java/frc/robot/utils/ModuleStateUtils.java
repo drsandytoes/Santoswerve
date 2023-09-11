@@ -71,17 +71,16 @@ public class ModuleStateUtils {
         //   lowerOffset = 270
         //   upperBound = -450 - 270 = -720
         //   lowerBound = -450 - (360 + 270) = -450 - 630 = -1080
-
-        upperBound = scopeReference - lowerOffset;
-        lowerBound = scopeReference - (2.0*Math.PI + lowerOffset);
+        // upperBound = scopeReference - lowerOffset;
+        // lowerBound = scopeReference - (2.0*Math.PI + lowerOffset);
 
         // MDS: Shouldn't this be the same as the positive case?
         // So here, if we were doing math in degrees and the scope reference was -5 deg:
         //   lowerOffset = 355
         //   lowerBound = -5 - 355 = -360
         //   upperBound = -5 + (360 - 355) = 0
-        // lowerBound = scopeReference - lowerOffset;
-        // upperBound = scopeReference + (2.0*Math.PI - lowerOffset);
+        lowerBound = scopeReference - lowerOffset;
+        upperBound = scopeReference + (2.0*Math.PI - lowerOffset);
         // And if the scope reference was -450, we'd compute:
         //   lowerOffset = 270
         //   lowerBound = -450 - 270 = -720

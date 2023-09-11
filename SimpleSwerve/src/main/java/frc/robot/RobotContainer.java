@@ -9,6 +9,7 @@ import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.subsystems.DrivetrainSubsystem;
 import frc.robot.subsystems.ExampleSubsystem;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
@@ -48,6 +49,15 @@ public class RobotContainer {
 
   }
 
+  // When the motors get enabled, we want to do a one-time reset of the steer position sensors
+  public void teleopInit() {
+    m_drivetrainSubsystem.resetSteerPositionSensors();
+  }
+
+  public void autonomousInit() {
+    m_drivetrainSubsystem.resetSteerPositionSensors();
+  }
+
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
    * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary
@@ -81,24 +91,12 @@ public class RobotContainer {
     return Autos.exampleAuto(m_exampleSubsystem);
   }
 
-  private static double deadband(double value, double deadband) {
-    if (Math.abs(value) > deadband) {
-      if (value > 0.0) {
-        return (value - deadband) / (1.0 - deadband);
-      } else {
-        return (value + deadband) / (1.0 - deadband);
-      }
-    } else {
-      return 0.0;
-    }
-  }
-
   private static double modifyAxis(double value) {
     // Deadband
-    value = deadband(value, Constants.Operator.kDeadband);
+    value = MathUtil.applyDeadband(value, Constants.Operator.kDeadband);
 
-    // Square the axis
-    value = Math.copySign(value * value, value);
+    // Square the axis, but preserve sign!
+    value = Math.copySign(Math.pow(value, 2), value);
 
     return value;
   }

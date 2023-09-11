@@ -16,6 +16,14 @@ public class DefaultDriveCommand extends CommandBase {
     private final DoubleSupplier m_translationYSupplier;
     private final DoubleSupplier m_rotationSupplier;
 
+    /**
+     * Create a drive command with the given suppliers and drive subsystem. The suppliers should 
+     * have already applied a deadband and converted whatever input into velocities.
+     * @param drivetrainSubsystem The drive subsystem to use
+     * @param translationXSupplier Double supplier that provides desired forward motion in m/s
+     * @param translationYSupplier Double supplier that provides leftward motion in m/s
+     * @param rotationSupplier Double supplier that provides counterclockwise rotation in radians/s
+     */
     public DefaultDriveCommand(DrivetrainSubsystem drivetrainSubsystem,
             DoubleSupplier translationXSupplier,
             DoubleSupplier translationYSupplier,
@@ -31,20 +39,14 @@ public class DefaultDriveCommand extends CommandBase {
     @Override
     public void execute() {
         // Apply deadband, and then square inputs, preserving sign.
-        double translationVal = MathUtil.applyDeadband(m_translationXSupplier.getAsDouble(),
-                Constants.Operator.kDeadband);
-        translationVal = Math.copySign(Math.pow(translationVal, 2), translationVal);
-        
-        double strafeVal = MathUtil.applyDeadband(m_translationYSupplier.getAsDouble(), Constants.Operator.kDeadband);
-        strafeVal = Math.copySign(Math.pow(strafeVal, 2), strafeVal);
-
-        double rotationVal = MathUtil.applyDeadband(m_rotationSupplier.getAsDouble(), Constants.Operator.kDeadband);
-        rotationVal = Math.copySign(Math.pow(rotationVal, 2), rotationVal);
+        double translationVal = m_translationXSupplier.getAsDouble();
+        double strafeVal = m_translationYSupplier.getAsDouble();
+        double rotationVal = m_rotationSupplier.getAsDouble();
 
         /* Drive */
         m_drivetrainSubsystem.drive(
-                new Translation2d(translationVal, strafeVal).times(m_drivetrainSubsystem.getMaxLinearVelocity()),
-                rotationVal * m_drivetrainSubsystem.getMaxAngularVelocity(),
+                new Translation2d(translationVal, strafeVal),
+                rotationVal,
                 true,
                 true);
 
