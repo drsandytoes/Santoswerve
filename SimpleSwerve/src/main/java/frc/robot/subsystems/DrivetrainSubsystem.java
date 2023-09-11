@@ -57,16 +57,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
   public static final double MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND = MAX_VELOCITY_METERS_PER_SECOND /
       (Math.hypot(DriveTrain.kTrackWidthMeters, DriveTrain.kWheelBaseMeters) / 2.0);
 
-  private final SwerveDriveKinematics m_kinematics = new SwerveDriveKinematics(
-      // Front left
-      new Translation2d(DriveTrain.kTrackWidthMeters / 2.0, DriveTrain.kWheelBaseMeters / 2.0),
-      // Front right
-      new Translation2d(DriveTrain.kTrackWidthMeters / 2.0, -DriveTrain.kWheelBaseMeters / 2.0),
-      // Back left
-      new Translation2d(-DriveTrain.kTrackWidthMeters / 2.0, DriveTrain.kWheelBaseMeters / 2.0),
-      // Back right
-      new Translation2d(-DriveTrain.kTrackWidthMeters / 2.0, -DriveTrain.kWheelBaseMeters / 2.0));
-
   // By default we use a Pigeon for our gyroscope. But if you use another
   // gyroscope, like a NavX, you can change this.
   // The important thing about how you configure your gyroscope is that rotating
@@ -160,7 +150,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
       currentPositions[module.moduleIndex] = module.getPosition();
     }
 
-    m_odometry = new SwerveDriveOdometry(m_kinematics, getGyroscopeRotation(), getModulePositions());
+    m_odometry = new SwerveDriveOdometry(DriveTrain.kSwerveKinematics, getGyroscopeRotation(), getModulePositions());
     fieldTab.add("Position", m_field)
       .withPosition(0, 0)
       .withSize(9, 5);
@@ -252,7 +242,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
   }
 
   public void drive(Translation2d translation, double rotation, boolean fieldRelative, boolean isOpenLoop) {
-    m_moduleStates = m_kinematics.toSwerveModuleStates(
+    m_moduleStates = DriveTrain.kSwerveKinematics.toSwerveModuleStates(
         fieldRelative ? ChassisSpeeds.fromFieldRelativeSpeeds(
             translation.getX(),
             translation.getY(),
