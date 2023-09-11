@@ -15,6 +15,10 @@ import frc.robot.utils.*;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+  public static class Overrides {
+    public static final boolean kDisableMotion = false;
+  }
+
   public static class FalconConstants {
     public static double kFreeSpeedRPM = 6380.0;
     public static double kTicksPerRotation = 2048.0;

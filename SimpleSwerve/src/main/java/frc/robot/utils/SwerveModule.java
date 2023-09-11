@@ -230,7 +230,7 @@ public class SwerveModule {
      * @param desiredState SwerveModuleState 
      * @param isOpenLoop not used
      */
-    public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop){
+    public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop) {
         /* This is a custom optimize function, since default WPILib optimize assumes continuous controller which CTRE and Rev onboard is not */
         desiredState = ModuleStateUtils.optimize(desiredState, getState().angle); 
         setAngle(desiredState);
@@ -243,63 +243,23 @@ public class SwerveModule {
      * @param isOpenLoop Is the system being driven open loop from a joystick
      */
     private void setSpeed(SwerveModuleState desiredState, boolean isOpenLoop) {
-        m_commandedSpeedMetersPerSecond = desiredState.speedMetersPerSecond;
+        double speed = Constants.Overrides.kDisableMotion ? 0 : desiredState.speedMetersPerSecond;
+        m_commandedSpeedMetersPerSecond = speed;
         if (isOpenLoop) {
-            double percentOutput = desiredState.speedMetersPerSecond / getMaxVelocity();
+            double percentOutput = speed / getMaxVelocity();
             m_driveMotor.set(ControlMode.PercentOutput, percentOutput);
         }
         else {
-            double velocity = desiredState.speedMetersPerSecond / m_driveMotorSensorVelocityCoefficient;
-            m_driveMotor.set(ControlMode.Velocity, velocity, DemandType.ArbitraryFeedForward, feedforward.calculate(desiredState.speedMetersPerSecond));
+            double velocity = speed / m_driveMotorSensorVelocityCoefficient;
+            m_driveMotor.set(ControlMode.Velocity, velocity, DemandType.ArbitraryFeedForward, feedforward.calculate(speed));
         }
     }
 
     private void setAngle(SwerveModuleState desiredState){
         Rotation2d angle = (Math.abs(desiredState.speedMetersPerSecond) <= (getMaxVelocity() * 0.01)) ? new Rotation2d(m_referenceAngleRadians) : desiredState.angle; //Prevent rotating module if speed is less then 1%. Prevents Jittering.
-        m_steerMotor.set(ControlMode.Position, angle.getRadians() * m_steerMotorSensorPositionCoefficient);
+        m_steerMotor.set(ControlMode.Position, angle.getRadians() / m_steerMotorSensorPositionCoefficient);
         m_referenceAngleRadians = angle.getRadians();
         m_commandedAngleRadians = m_referenceAngleRadians;
-    }
-
-    /**
-     * Set the desired state of the module in terms of a drive voltage and steer angle
-     * @param driveVoltage Output voltage with which to drive the steer motor
-     * @param steerAngle Angle fo the module's wheel
-     */
-    public void set(double driveVoltage, double steerAngle) {
-        steerAngle %= (2.0 * Math.PI);
-        if (steerAngle < 0.0) {
-            steerAngle += 2.0 * Math.PI;
-        }
-
-        double difference = steerAngle - getStateAngle();
-        // Change the target angle so the difference is in the range [-pi, pi) instead of [0, 2pi)
-        if (difference >= Math.PI) {
-            steerAngle -= 2.0 * Math.PI;
-        } else if (difference < -Math.PI) {
-            steerAngle += 2.0 * Math.PI;
-        }
-        difference = steerAngle - getStateAngle(); // Recalculate difference
-
-        // If the difference is greater than 90 deg or less than -90 deg the drive can be inverted so the total
-        // movement of the module is less than 90 deg
-        if (difference > Math.PI / 2.0 || difference < -Math.PI / 2.0) {
-            // Only need to add 180 deg here because the target angle will be put back into the range [0, 2pi)
-            steerAngle += Math.PI;
-            driveVoltage *= -1.0;
-        }
-
-        setReferenceVoltage(driveVoltage);
-        setReferenceAngle(steerAngle);
-    }
-
-    /**
-     * Set the drive motor to the given voltage output
-     * @param voltage Desired voltage to set on the drive motor
-     */
-    private void setReferenceVoltage(double voltage) {
-        m_driveMotor.set(TalonFXControlMode.PercentOutput, 
-        voltage / (m_driveMotorOptions.hasVoltageCompensation() ? m_driveMotorOptions.nominalVoltage : 12.0));
     }
 
     /**
@@ -307,12 +267,18 @@ public class SwerveModule {
      * @param container ShuffleboardContainer to use
      */
     private void addDashboardEntries(ShuffleboardContainer container) {
-        container.addNumber("Current Velocity", this::getStateVelocity);
-        container.addNumber("Absolute Encoder Angle", () -> Math.toDegrees(getAbsoluteAngle()));
-        container.addNumber("Current Angle", () -> Math.toDegrees(getStateAngle()));
-        container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()));
-        container.addNumber("Commanded Angle", () -> Math.toDegrees(m_commandedAngleRadians));
-        container.addNumber("Commanded Velocity", () -> m_commandedSpeedMetersPerSecond);
+        container.addNumber("Absolute Encoder Angle", () -> Math.toDegrees(getAbsoluteAngle()))
+            .withPosition(0, 0);
+        container.addNumber("Current Angle", () -> Math.toDegrees(getStateAngle()))
+            .withPosition(0, 1);
+        container.addNumber("Commanded Angle", () -> Math.toDegrees(m_commandedAngleRadians))
+            .withPosition(0, 2);
+        container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()))
+            .withPosition(0, 3);
+        container.addNumber("Current Velocity", this::getStateVelocity)
+            .withPosition(0, 4);
+        container.addNumber("Commanded Velocity", () -> m_commandedSpeedMetersPerSecond)
+            .withPosition(0, 5);
     }
 
     /**

@@ -30,10 +30,16 @@ public class DefaultDriveCommand extends CommandBase {
 
     @Override
     public void execute() {
+        // Apply deadband, and then square inputs, preserving sign.
         double translationVal = MathUtil.applyDeadband(m_translationXSupplier.getAsDouble(),
                 Constants.Operator.kDeadband);
+        translationVal = Math.copySign(Math.pow(translationVal, 2), translationVal);
+        
         double strafeVal = MathUtil.applyDeadband(m_translationYSupplier.getAsDouble(), Constants.Operator.kDeadband);
+        strafeVal = Math.copySign(Math.pow(strafeVal, 2), strafeVal);
+
         double rotationVal = MathUtil.applyDeadband(m_rotationSupplier.getAsDouble(), Constants.Operator.kDeadband);
+        rotationVal = Math.copySign(Math.pow(rotationVal, 2), rotationVal);
 
         /* Drive */
         m_drivetrainSubsystem.drive(

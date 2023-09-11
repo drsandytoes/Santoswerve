@@ -82,14 +82,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
   private final Field2d m_field = new Field2d();
 
   public DrivetrainSubsystem() {
-    ShuffleboardTab tab = Shuffleboard.getTab("Drivetrain");
+    ShuffleboardTab driveTrainTab = Shuffleboard.getTab("Drivetrain");
+    ShuffleboardTab fieldTab = Shuffleboard.getTab("Field Position");
 
     DriveTrain.SwerveModule moduleInfo = DriveTrain.kFrontLeftModule;
     SwerveModule frontLeftModule = new SwerveModule(
         0,
         // This parameter is optional, but will allow you to see the current state of
         // the module on the dashboard.
-        tab.getLayout("Front Left Module", BuiltInLayouts.kList)
+        driveTrainTab.getLayout("Front Left Module", BuiltInLayouts.kList)
             .withSize(2, 4)
             .withPosition(0, 0),
 
@@ -106,7 +107,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     moduleInfo = DriveTrain.kFrontRightModule;
     SwerveModule frontRightModule = new SwerveModule(
         1,
-        tab.getLayout("Front Right Module", BuiltInLayouts.kList)
+        driveTrainTab.getLayout("Front Right Module", BuiltInLayouts.kList)
             .withSize(2, 4)
             .withPosition(2, 0),
         DriveTrain.kSwerveConfiguration,
@@ -121,7 +122,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     moduleInfo = DriveTrain.kBackLeftModule;
     SwerveModule backLeftModule = new SwerveModule(
         2,
-        tab.getLayout("Back Left Module", BuiltInLayouts.kList)
+        driveTrainTab.getLayout("Back Left Module", BuiltInLayouts.kList)
             .withSize(2, 4)
             .withPosition(4, 0),
         DriveTrain.kSwerveConfiguration,
@@ -136,7 +137,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     moduleInfo = DriveTrain.kBackRightModule;
     SwerveModule backRightModule = new SwerveModule(
         3,
-        tab.getLayout("Back Right Module", BuiltInLayouts.kList)
+        driveTrainTab.getLayout("Back Right Module", BuiltInLayouts.kList)
             .withSize(2, 4)
             .withPosition(6, 0),
         DriveTrain.kSwerveConfiguration,
@@ -160,7 +161,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
 
     m_odometry = new SwerveDriveOdometry(m_kinematics, getGyroscopeRotation(), getModulePositions());
-    tab.add("Position", m_field);
+    fieldTab.add("Position", m_field)
+      .withSize(9, 5);
   }
 
   /**
