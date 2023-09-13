@@ -4,8 +4,8 @@
 
 package frc.robot;
 
+import frc.robot.commands.AutoFactory;
 import frc.robot.commands.DefaultDriveCommand;
-import frc.robot.commands.SimpleAutoTrajectory;
 import frc.robot.subsystems.DrivetrainSubsystem;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -79,7 +79,7 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
-    return new SimpleAutoTrajectory(m_drivetrainSubsystem);
+    return AutoFactory.squareTrajectory(m_drivetrainSubsystem);
   }
 
   private static double modifyAxis(double value) {

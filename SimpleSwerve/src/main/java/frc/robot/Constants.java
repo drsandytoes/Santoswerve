@@ -127,13 +127,18 @@ public final class Constants {
   }
 
   public static final class AutoConstants {
+    /**
+     * Multiplier to the other auto speed/acceleration constants when asking for the slow
+     * version.
+     */
+    public static final double kSlowDownFactor = 0.3;
     public static final double kMaxSpeedMetersPerSecond = 3;
     public static final double kMaxAccelerationMetersPerSecondSquared = 3;
     public static final double kMaxAngularSpeedRadiansPerSecond = Math.PI;
     public static final double kMaxAngularSpeedRadiansPerSecondSquared = Math.PI;
 
-    public static final double kPXController = 1;
-    public static final double kPYController = 1;
+    public static final double kPXController = 0.5;
+    public static final double kPYController = 0.5;
     public static final double kPThetaController = 1;
 
     /* Constraint for the motion profilied robot angle controller */
