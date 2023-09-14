@@ -4,7 +4,7 @@
 
 package frc.robot;
 
-import frc.robot.commands.AutoFactory;
+import frc.robot.commands.AutoChooser;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.subsystems.DrivetrainSubsystem;
 import edu.wpi.first.math.MathUtil;
@@ -24,9 +24,12 @@ public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final DrivetrainSubsystem m_drivetrainSubsystem = new DrivetrainSubsystem();
   private final CommandJoystick m_controller = new CommandJoystick(Constants.Operator.kDriverControllerPort);
+  private final AutoChooser m_autoFactory;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    m_autoFactory = new AutoChooser(m_drivetrainSubsystem);
+
     // Configure the trigger bindings
     configureBindings();
     
@@ -79,7 +82,7 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An example command will be run in autonomous
-    return AutoFactory.squareTrajectory(m_drivetrainSubsystem);
+    return m_autoFactory.getSelectedCommand();
   }
 
   private static double modifyAxis(double value) {
