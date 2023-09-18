@@ -49,7 +49,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
    * This is a measure of how fast the robot should be able to drive in a straight
    * line.
    */
-  public static final double MAX_VELOCITY_METERS_PER_SECOND = DriveTrain.kSwerveConfiguration
+  private static final double MAX_VELOCITY_METERS_PER_SECOND = DriveTrain.kSwerveConfiguration
       .getDriveMotorFreeSpeedRPM() / 60.0 *
       DriveTrain.kSwerveConfiguration.getDriveReduction() *
       DriveTrain.kSwerveConfiguration.getWheelDiameter() * Math.PI;
@@ -60,7 +60,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
    */
   // Here we calculate the theoretical maximum angular velocity. You can also
   // replace this with a measured amount.
-  public static final double MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND = MAX_VELOCITY_METERS_PER_SECOND /
+  private static final double MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND = MAX_VELOCITY_METERS_PER_SECOND /
       (Math.hypot(DriveTrain.kTrackWidthMeters, DriveTrain.kWheelBaseMeters) / 2.0);
 
   /**
@@ -221,7 +221,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
    * 
    * @return Max velocity (m/s)
    */
-  public double getMaxLinearVelocity() {
+  public static double getMaxLinearVelocity() {
     return MAX_VELOCITY_METERS_PER_SECOND;
   }
 
@@ -230,7 +230,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
    * 
    * @return Max velocity (radians/s)
    */
-  public double getMaxAngularVelocity() {
+  public static double getMaxAngularVelocity() {
     return MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND;
   }
 

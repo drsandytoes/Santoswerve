@@ -80,13 +80,15 @@ public final class Constants {
         FalconConstants.kFreeSpeedRPM,
         FalconConstants.kFreeSpeedRPM);
 
+    // kF ~ 0.046 @ 0.5m/s (decent @ 1.0m/s)
+    // kP ~ 0.08
     public static final SwerveMotorConfiguration kDriveMotorOptions = new SwerveMotorConfiguration()
-        // .withContinuousCurrentLimit(35)
-        // .withPeakCurrentLimit(60)
-        // .withPeakCurrentDuration(0.1)
+        .withContinuousCurrentLimit(35)
+        .withPeakCurrentLimit(60)
+        .withPeakCurrentDuration(0.1)
         .withNominalVoltage(12.0)
-        .withPIDFConstants(0.05, 0.0, 0.0, 0.0);
-        // .withFeedForwardConstants((0.32 / 12), (1.51 / 12), (0.27 / 12));
+        .withPIDFConstants(0.08, 0.0, 0.0, 0.046);
+        // .withFeedForwardConstants((0.64 / 12), (2.0 / 12), (0.27 / 12));
 
     public static final SwerveMotorConfiguration kSteerMotorOptions = new SwerveMotorConfiguration()
         .withContinuousCurrentLimit(25)

@@ -20,9 +20,9 @@ public class SendablePIDParameters implements Sendable {
     public void initSendable(SendableBuilder builder)  {
         builder.setSmartDashboardType("RobotPreferences");
         builder.addDoubleProperty("kP", () -> m_kP, (double kP) -> m_kP = kP);
-        builder.addDoubleProperty("kI", () -> m_kI, (double kI) -> m_kP = kI);
-        builder.addDoubleProperty("kD", () -> m_kD, (double kD) -> m_kP = kD);
-        builder.addDoubleProperty("kF", () -> m_kF, (double kF) -> m_kP = kF);
+        builder.addDoubleProperty("kI", () -> m_kI, (double kI) -> m_kI = kI);
+        builder.addDoubleProperty("kD", () -> m_kD, (double kD) -> m_kD = kD);
+        builder.addDoubleProperty("kF", () -> m_kF, (double kF) -> m_kF = kF);
     }
 
     public synchronized double getProportionalConstant() {

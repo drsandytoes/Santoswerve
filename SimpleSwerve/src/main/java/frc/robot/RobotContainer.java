@@ -42,9 +42,9 @@ public class RobotContainer {
     
     m_drivetrainSubsystem.setDefaultCommand(new DefaultDriveCommand(
       m_drivetrainSubsystem,
-      () -> -modifyAxis(m_controller.getY()) * DrivetrainSubsystem.MAX_VELOCITY_METERS_PER_SECOND,
-      () -> -modifyAxis(m_controller.getX()) * DrivetrainSubsystem.MAX_VELOCITY_METERS_PER_SECOND,
-      () -> -modifyAxis(m_controller.getTwist()) * DrivetrainSubsystem.MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND
+      () -> -modifyAxis(m_controller.getY()) * DrivetrainSubsystem.getMaxLinearVelocity(),
+      () -> -modifyAxis(m_controller.getX()) * DrivetrainSubsystem.getMaxLinearVelocity(),
+      () -> -modifyAxis(m_controller.getTwist()) * DrivetrainSubsystem.getMaxAngularVelocity()
     ));
 
     // m_drivetrainSubsystem.setDefaultCommand(new DefaultDriveCommand(
