@@ -8,6 +8,9 @@ import frc.robot.commands.AutoChooser;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.subsystems.DrivetrainSubsystem;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.util.datalog.DataLog;
+import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
@@ -28,6 +31,10 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    // Log NetworkTables, joystick inputs, and driver station data
+    DataLogManager.start();
+    DriverStation.startDataLog(DataLogManager.getLog());
+
     m_autoFactory = new AutoChooser(m_drivetrainSubsystem);
 
     // Configure the trigger bindings

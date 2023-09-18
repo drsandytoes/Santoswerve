@@ -14,12 +14,18 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Constants.*;
+import frc.robot.utils.SendablePIDParameters;
+import frc.robot.utils.SendableVelocityTuningParameters;
 import frc.robot.utils.SwerveModule;
 
 public class DrivetrainSubsystem extends SubsystemBase {
@@ -57,6 +63,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
   public static final double MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND = MAX_VELOCITY_METERS_PER_SECOND /
       (Math.hypot(DriveTrain.kTrackWidthMeters, DriveTrain.kWheelBaseMeters) / 2.0);
 
+  /**
+   * Tuning parameters put onto the dashboard.
+   */
+  private SendablePIDParameters m_tuningPID = new SendablePIDParameters(Constants.DriveTrain.kDriveMotorOptions.proportionalConstant,
+    Constants.DriveTrain.kDriveMotorOptions.integralConstant,
+    Constants.DriveTrain.kDriveMotorOptions.derivativeConstant,
+    Constants.DriveTrain.kDriveMotorOptions.feedForwardConstant);
+  private SendableVelocityTuningParameters m_tuningParams = new SendableVelocityTuningParameters(2.0, 2.0);
+
   // By default we use a Pigeon for our gyroscope. But if you use another
   // gyroscope, like a NavX, you can change this.
   // The important thing about how you configure your gyroscope is that rotating
@@ -73,7 +88,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
   public DrivetrainSubsystem() {
     ShuffleboardTab driveTrainTab = Shuffleboard.getTab("Drivetrain");
+    ShuffleboardTab driveTrainConstantsTab = Shuffleboard.getTab("Drivetrains Constants");
     ShuffleboardTab fieldTab = Shuffleboard.getTab("Field Position");
+
+    driveTrainConstantsTab.addDouble("Max Linear Velocity", () -> MAX_VELOCITY_METERS_PER_SECOND);
+    driveTrainConstantsTab.addDouble("Max Angular Velocity", () -> MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND);
 
     DriveTrain.SwerveModule moduleInfo = DriveTrain.kFrontLeftModule;
     SwerveModule frontLeftModule = new SwerveModule(
@@ -145,15 +164,56 @@ public class DrivetrainSubsystem extends SubsystemBase {
     m_swerveModules[backLeftModule.moduleIndex] = backLeftModule;
     m_swerveModules[backRightModule.moduleIndex] = backRightModule;
 
-    SwerveModulePosition[] currentPositions = new SwerveModulePosition[m_swerveModules.length];
-    for (SwerveModule module : m_swerveModules) {
-      currentPositions[module.moduleIndex] = module.getPosition();
-    }
-
     m_odometry = new SwerveDriveOdometry(DriveTrain.kSwerveKinematics, getGyroscopeRotation(), getModulePositions());
     fieldTab.add("Position", m_field)
       .withPosition(0, 0)
       .withSize(9, 5);
+
+      configureTuningTab("Tuning", frontRightModule);
+
+}
+
+  private void configureTuningTab(String title, SwerveModule module) {
+    ShuffleboardTab tuningTab = Shuffleboard.getTab(title);
+
+    ShuffleboardLayout pidContainer = tuningTab.getLayout("PID", BuiltInLayouts.kGrid)
+      .withPosition(0, 0)
+      .withSize(2, 2);
+    pidContainer.add("PID", m_tuningPID);
+
+    ShuffleboardLayout calibrationContainer = tuningTab.getLayout("Calibration", BuiltInLayouts.kGrid)
+      .withPosition(0, 2)
+      .withSize(2, 2);
+    calibrationContainer.add("Tuning", m_tuningParams);
+
+    // Add graphs of velocity and distance that can be used when PID tuning
+    tuningTab.addDouble("Velocity", module::getStateVelocity)
+      .withPosition(2, 0)
+      .withSize(6, 3)
+      .withWidget(BuiltInWidgets.kGraph);
+
+    tuningTab.addDouble("Distance", module::getStateDistance)
+      .withPosition(2, 3)
+      .withSize(6, 3)
+      .withWidget(BuiltInWidgets.kGraph);
+  }
+
+  public void reconfigurePIDFromDashboard() {
+    double kP = m_tuningPID.getProportionalConstant();
+    double kI = m_tuningPID.getIntegralConstant();
+    double kD = m_tuningPID.getDerivativeConstant();
+    double kF = m_tuningPID.getFeedForwardConstant();
+
+    DataLogManager.log("Setting PID: " + kP + ", " + kI + ", " + kD + ", " + kF);
+    configureDriveMotorPID(kP, kI, kD, kF);
+  }
+
+  public double getTuningDistanceLimit() {
+    return m_tuningParams.getDistanceLimit();
+  }
+
+  public double getTuningTargetVelocity() {
+    return m_tuningParams.getTargetVelocity();
   }
 
   /**
@@ -220,8 +280,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
   /**
    * Sets the gyroscope angle to zero. This can be used to set the direction the
-   * robot is currently facing to the
-   * 'forwards' direction.
+   * robot is currently facing to the 'forwards' direction.
    */
   public void zeroGyroscope() {
     m_pigeon.setYaw(0.0);
@@ -237,10 +296,29 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
   }
 
+  /**
+   * Resets the drive motor's internal position sensor to 0.
+   */
+  public void zeroDrivePositionSensors() {
+    for (SwerveModule module : m_swerveModules) {
+      module.zeroDrivePositionSensor();
+    }
+
+  }
+
   public Rotation2d getGyroscopeRotation() {
     return Rotation2d.fromDegrees(m_pigeon.getYaw());
   }
 
+  /**
+   * Basic drive method of the drive train. This method takes the desired translation (x/y) and 
+   * rotation speeds. If fieldRelative is false, the translation is robot-centric; otherwise the
+   * translation is relative to the field position established when the gyroscope was last reset.
+   * @param translation Translation2d describing x/y speeds (m/s)
+   * @param rotation double representing the rotation speed (radians/s)
+   * @param fieldRelative boolean, indicates whether translation is field- or robot-relative
+   * @param isOpenLoop boolean, indicates whether to use open or closed loop controls. 
+   */
   public void drive(Translation2d translation, double rotation, boolean fieldRelative, boolean isOpenLoop) {
     m_moduleStates = DriveTrain.kSwerveKinematics.toSwerveModuleStates(
         fieldRelative ? ChassisSpeeds.fromFieldRelativeSpeeds(
@@ -255,16 +333,48 @@ public class DrivetrainSubsystem extends SubsystemBase {
     SwerveDriveKinematics.desaturateWheelSpeeds(m_moduleStates, MAX_VELOCITY_METERS_PER_SECOND);
 
     for (SwerveModule mod : m_swerveModules) {
-      mod.setDesiredState(m_moduleStates[mod.moduleIndex], isOpenLoop);
+      mod.setDesiredState(m_moduleStates[mod.moduleIndex], isOpenLoop, true);
     }
   }
 
+  /**
+   * setModuleStates sets the state of the swerve modules directly. It uses velocity PID implemented
+   * by the swerve motors themselves. 
+   * @param desiredStates Desired SwerveModuleStates for each module.
+   */
   /* Used by SwerveControllerCommand in Auto */
   public void setModuleStates(SwerveModuleState[] desiredStates) {
     SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, MAX_VELOCITY_METERS_PER_SECOND);
 
     for (SwerveModule mod : m_swerveModules) {
-      mod.setDesiredState(desiredStates[mod.moduleIndex], false);
+      mod.setDesiredState(desiredStates[mod.moduleIndex], false, true);
+    }
+  }
+
+  /**
+   * setModuleStatesWithoutOptimization sets the state of the swerve modules directly. It uses velocity PID implemented
+   * by the swerve motors themselves. This is used for calibration.
+   * @param desiredStates Desired SwerveModuleStates for each module.
+   */
+  /* Used by SwerveControllerCommand in Auto */
+  public void setModuleStatesWithoutOptimization(SwerveModuleState[] desiredStates) {
+    SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, MAX_VELOCITY_METERS_PER_SECOND);
+
+    for (SwerveModule mod : m_swerveModules) {
+      mod.setDesiredState(desiredStates[mod.moduleIndex], false, false);
+    }
+  }
+
+  /**
+    * Reconfigure the PID constants for closed loop control. This is useful for PID tuning.
+    * @param kP double, proportional constant
+    * @param kI double, integral constant
+    * @param kD double, derivative constant
+    * @param kF double, feed forward constant
+    */
+  public void configureDriveMotorPID(double kP, double kI, double kD, double kF) {
+    for (SwerveModule mod : m_swerveModules) {
+      mod.configureDriveMotorPID(kP, kI, kD, kF);
     }
   }
 

@@ -16,10 +16,8 @@ import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import frc.robot.Constants;
 import frc.robot.subsystems.DrivetrainSubsystem;
 
-public abstract class AutoCommandBase {
-    final static String name = "unknown";
-
-    abstract public Command createCommand(DrivetrainSubsystem driveTrain, TrajectoryConfig trajectoryConfig);
+public abstract class AutoCommandBase implements AutoCommand {
+    protected DrivetrainSubsystem m_driveTrain;
 
     /**
      * Helper method to return a simple trajectory created from an initial and final pose, and interior

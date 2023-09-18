@@ -1,31 +1,47 @@
 package frc.robot.utils;
 
 public class SwerveMotorConfiguration {
-    // PID configuration
+    // PIDF configuration
     public double proportionalConstant = Double.NaN;
     public double integralConstant = Double.NaN;
     public double derivativeConstant = Double.NaN;
+    public double feedForwardConstant = Double.NaN;
 
-    // Motion magic configuration
+    // Feed forward configuration
+    public double staticConstant = Double.NaN;
     public double velocityConstant = Double.NaN;
     public double accelerationConstant = Double.NaN;
-    public double staticConstant = Double.NaN;
 
-    public double currentLimit = Double.NaN;
+    // Current limits
+    public double continuousCurrentLimit = Double.NaN;
+    public double peakCurrentLimit = Double.NaN;
+    public double peakCurrentDuration = 0.0;
+
     public double nominalVoltage = Double.NaN;
 
     public SwerveMotorConfiguration() {
     }
 
-    public SwerveMotorConfiguration withCurrentLimit(double currentLimit) {
-        this.currentLimit = currentLimit;
+    public SwerveMotorConfiguration withContinuousCurrentLimit(double currentLimit) {
+        this.continuousCurrentLimit = currentLimit;
         return this;
     }
 
-    public SwerveMotorConfiguration withPIDConstants(double kP, double kI, double kD) {
+    public SwerveMotorConfiguration withPeakCurrentLimit(double currentLimit) {
+        this.peakCurrentLimit = currentLimit;
+        return this;
+    }
+
+    public SwerveMotorConfiguration withPeakCurrentDuration(double duration) {
+        this.peakCurrentDuration = duration;
+        return this;
+    }
+
+    public SwerveMotorConfiguration withPIDFConstants(double kP, double kI, double kD, double kF) {
         proportionalConstant = kP;
         integralConstant = kI;
         derivativeConstant = kD;
+        feedForwardConstant = kF;
         return this;
     }
 
@@ -34,18 +50,18 @@ public class SwerveMotorConfiguration {
         return this;
     }
 
-    public SwerveMotorConfiguration withMotionMagicContants(double kVelocity, double kAcceleration, double kStatic) {
+    public SwerveMotorConfiguration withFeedForwardConstants(double kStatic, double kVelocity, double kAcceleration) {
+        staticConstant = kStatic;
         velocityConstant = kVelocity;
         accelerationConstant = kAcceleration;
-        staticConstant = kStatic;
         return this;
     }
 
     public boolean hasPidConstants() {
-        return Double.isFinite(proportionalConstant) && Double.isFinite(integralConstant) && Double.isFinite(derivativeConstant);
+        return Double.isFinite(proportionalConstant) && Double.isFinite(integralConstant) && Double.isFinite(derivativeConstant) && Double.isFinite(feedForwardConstant);
     }
 
-    public boolean hasMotionMagic() {
+    public boolean hasFeedForwardConstants() {
         return Double.isFinite(velocityConstant) && Double.isFinite(accelerationConstant) && Double.isFinite(staticConstant);
     }
 
@@ -54,6 +70,7 @@ public class SwerveMotorConfiguration {
     }
 
     public boolean hasCurrentLimit() {
-        return Double.isFinite(currentLimit);
+        // We only need a continuous current limit
+        return Double.isFinite(continuousCurrentLimit);
     }
 }

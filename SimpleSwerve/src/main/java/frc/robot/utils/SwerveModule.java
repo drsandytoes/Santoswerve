@@ -4,7 +4,6 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.DemandType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatusFrameEnhanced;
-import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 import com.ctre.phoenix.motorcontrol.TalonFXInvertType;
 import com.ctre.phoenix.motorcontrol.can.TalonFXConfiguration;
@@ -24,10 +23,6 @@ import frc.robot.Constants;
 import frc.robot.Constants.FalconConstants;
 
 public class SwerveModule {
-    private static final int ENCODER_RESET_ITERATIONS = 500;
-    private static final double ENCODER_RESET_MAX_ANGULAR_VELOCITY = Math.toRadians(0.5);
-    private int resetIteration = 0;
-
     public final int moduleIndex;
 
     private static final int CAN_TIMEOUT_MS = 250;
@@ -49,10 +44,10 @@ public class SwerveModule {
     private SwerveMotorConfiguration m_driveMotorOptions, m_steerMotorOptions;
 
     private double m_referenceAngleRadians;
-    private double m_commandedAngleRadians;
     private double m_commandedSpeedMetersPerSecond;
+    private double m_commandedSpeedTicksPer100ms;
 
-    SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(Constants.DriveTrain.kDriveMotorOptions.staticConstant, Constants.DriveTrain.kDriveMotorOptions.velocityConstant, Constants.DriveTrain.kDriveMotorOptions.staticConstant);
+    private SimpleMotorFeedforward m_driveFeedforward;
 
     public SwerveModule(int moduleIndex, ShuffleboardLayout container, SwerveModuleConfiguration configuration, SwerveMotorConfiguration driveMotorOptions, SwerveMotorConfiguration steerMotorOptions, CANDeviceID driveMotorID, CANDeviceID steerMotorID, CANDeviceID steerEncodeID, double steerOffset) {
         this.moduleIndex = moduleIndex;
@@ -72,7 +67,7 @@ public class SwerveModule {
         m_steerMotorSensorPositionCoefficient = 2.0 * Math.PI / FalconConstants.kTicksPerRotation * m_configuration.getSteerReduction();
 
         // Used to convert the motor's reported velocity from native units to radians/second
-        m_steerMotorSensorVelocityCoefficient = m_steerMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksPerSecondConversion;
+        m_steerMotorSensorVelocityCoefficient = m_steerMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksToTicksPerSecond;
 
         // Used to convert the motor's reported position from native units to meters
         // Falcon's sensor position is in ticks. To conver the reported sensor position to a distance in meters:
@@ -80,7 +75,7 @@ public class SwerveModule {
         m_driveMotorSensorPositionCoefficient = Math.PI * m_configuration.getWheelDiameter() * m_configuration.getDriveReduction() / FalconConstants.kTicksPerRotation;
 
         // Used to convert the motor's reported velocity from native units to meters/second
-        m_driveMotorSensorVelocityCoefficient = m_driveMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksPerSecondConversion;
+        m_driveMotorSensorVelocityCoefficient = m_driveMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksToTicksPerSecond;
 
         addDashboardEntries(container);
     }
@@ -101,13 +96,32 @@ public class SwerveModule {
         m_steerEncoder.setStatusFramePeriod(CANCoderStatusFrame.SensorData, 10, 250);
     }
 
+    /**
+     * Reconfigure the PID constants for closed loop control. This is useful for PID tuning.
+     * @param kP double, proportional constant
+     * @param kI double, integral constant
+     * @param kD double, derivative constant
+     * @param kF double, feed forward constant
+     */
+    public void configureDriveMotorPID(double kP, double kI, double kD, double kF) {
+        m_driveMotor.config_kP(0, kP);
+        m_driveMotor.config_kI(0, kI);
+        m_driveMotor.config_kD(0, kD);
+        m_driveMotor.config_kF(0, kF);
+    }
+
     public void configureDriveMotor() {
         TalonFXConfiguration motorConfiguration = new TalonFXConfiguration();
+
+        if (m_driveMotorOptions.hasFeedForwardConstants()) {
+            m_driveFeedforward = new SimpleMotorFeedforward(Constants.DriveTrain.kDriveMotorOptions.staticConstant, Constants.DriveTrain.kDriveMotorOptions.velocityConstant, Constants.DriveTrain.kDriveMotorOptions.accelerationConstant);
+        }
 
         if (m_driveMotorOptions.hasPidConstants()) {
             motorConfiguration.slot0.kP = m_driveMotorOptions.proportionalConstant;
             motorConfiguration.slot0.kI = m_driveMotorOptions.integralConstant;
             motorConfiguration.slot0.kD = m_driveMotorOptions.derivativeConstant;
+            motorConfiguration.slot0.kF = m_driveMotorOptions.feedForwardConstant;
         }
 
         if (m_driveMotorOptions.hasVoltageCompensation()) {
@@ -115,7 +129,11 @@ public class SwerveModule {
         }
 
         if (m_driveMotorOptions.hasCurrentLimit()) {
-            motorConfiguration.supplyCurrLimit.currentLimit = m_driveMotorOptions.currentLimit;
+            motorConfiguration.supplyCurrLimit.currentLimit = m_driveMotorOptions.continuousCurrentLimit;
+            if (Double.isFinite(m_driveMotorOptions.peakCurrentLimit)) {
+                motorConfiguration.supplyCurrLimit.triggerThresholdCurrent =  m_driveMotorOptions.peakCurrentLimit;
+                motorConfiguration.supplyCurrLimit.triggerThresholdTime = m_driveMotorOptions.peakCurrentDuration;
+            }
             motorConfiguration.supplyCurrLimit.enable = true;
         }
 
@@ -125,6 +143,9 @@ public class SwerveModule {
             // Enable voltage compensation
             m_driveMotor.enableVoltageCompensation(true);
         }
+
+        CtreUtils.checkCtreError(m_driveMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, 0, CAN_TIMEOUT_MS),
+        "Set selected sensor");
 
         m_driveMotor.setNeutralMode(NeutralMode.Brake);
 
@@ -141,24 +162,18 @@ public class SwerveModule {
             motorConfiguration.slot0.kP = m_steerMotorOptions.proportionalConstant;
             motorConfiguration.slot0.kI = m_steerMotorOptions.integralConstant;
             motorConfiguration.slot0.kD = m_steerMotorOptions.derivativeConstant;
+            motorConfiguration.slot0.kF = m_steerMotorOptions.feedForwardConstant;
         }
-        if (m_steerMotorOptions.hasMotionMagic()) {
-            if (m_steerMotorOptions.hasVoltageCompensation()) {
-                motorConfiguration.slot0.kF = (1023.0 * m_steerMotorSensorVelocityCoefficient / m_steerMotorOptions.nominalVoltage) * m_steerMotorOptions.velocityConstant;
-            } else {
-                assert(false);
-                // TODO: What should be done if no nominal voltage is configured? Use a default voltage?
-            }
 
-            // TODO: Make motion magic max voltages configurable or dynamically determine optimal values
-            motorConfiguration.motionCruiseVelocity = 2.0 / m_steerMotorOptions.velocityConstant / m_steerMotorSensorVelocityCoefficient;
-            motorConfiguration.motionAcceleration = (8.0 - 2.0) / m_steerMotorOptions.accelerationConstant / m_steerMotorSensorVelocityCoefficient;
-        }
         if (m_steerMotorOptions.hasVoltageCompensation()) {
             motorConfiguration.voltageCompSaturation = m_steerMotorOptions.nominalVoltage;
         }
         if (m_steerMotorOptions.hasCurrentLimit()) {
-            motorConfiguration.supplyCurrLimit.currentLimit = m_steerMotorOptions.currentLimit;
+            motorConfiguration.supplyCurrLimit.currentLimit = m_steerMotorOptions.continuousCurrentLimit;
+            if (Double.isFinite(m_steerMotorOptions.peakCurrentLimit)) {
+                motorConfiguration.supplyCurrLimit.triggerThresholdCurrent =  m_steerMotorOptions.peakCurrentLimit;
+                motorConfiguration.supplyCurrLimit.triggerThresholdTime = m_steerMotorOptions.peakCurrentDuration;
+            }
             motorConfiguration.supplyCurrLimit.enable = true;
         }
 
@@ -184,11 +199,6 @@ public class SwerveModule {
 
         // Reduce CAN status frame rates
         m_steerMotor.setStatusFramePeriod(StatusFrameEnhanced.Status_1_General, STATUS_FRAME_GENERAL_PERIOD_MS, CAN_TIMEOUT_MS);
-
-        // MDS: Set initial position (even though motor disabled?)
-        // if (m_steerMotorOptions.hasPidConstants() || m_steerMotorOptions.hasMotionMagic()) {
-        //     m_steerMotor.set(TalonFXControlMode.Position, currentAngle / m_steerMotorSensorPositionCoefficient);
-        // }
     }
 
     /**
@@ -199,7 +209,12 @@ public class SwerveModule {
     public void resetSteerPositionSensor() {
         double absoluteAngle = getAbsoluteAngle();
         CtreUtils.checkCtreError(m_steerMotor.setSelectedSensorPosition(absoluteAngle / m_steerMotorSensorPositionCoefficient),
-        "Reset motor sensor position");
+        "Reset steer motor sensor position");
+    }
+
+    public void zeroDrivePositionSensor() {
+        CtreUtils.checkCtreError(m_driveMotor.setSelectedSensorPosition(0),
+         "Reset drive motor sensor position");
     }
 
 
@@ -228,11 +243,16 @@ public class SwerveModule {
     /**
      * Set the desired state of the module
      * @param desiredState SwerveModuleState 
-     * @param isOpenLoop not used
+     * @param isOpenLoop boolean, Controls whether open or closed loop control is used
+     * @param optimize boolean,  Indicates whether  angle optimization is allowed. This should be true except for calibration.
      */
-    public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop) {
-        /* This is a custom optimize function, since default WPILib optimize assumes continuous controller which CTRE and Rev onboard is not */
-        desiredState = ModuleStateUtils.optimize(desiredState, getState().angle); 
+    public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop, boolean optimize) {
+        /* This is a custom optimize function, since default WPILib optimize assumes continuous 
+        * controller which CTRE and Rev onboard is not 
+        */
+        if (optimize) {
+            desiredState = ModuleStateUtils.optimize(desiredState, getState().angle); 
+        }
         setAngle(desiredState);
         setSpeed(desiredState, isOpenLoop);
     }
@@ -247,11 +267,17 @@ public class SwerveModule {
         m_commandedSpeedMetersPerSecond = speed;
         if (isOpenLoop) {
             double percentOutput = speed / getMaxVelocity();
+            m_commandedSpeedTicksPer100ms = 0.0;
             m_driveMotor.set(ControlMode.PercentOutput, percentOutput);
         }
         else {
-            double velocity = speed / m_driveMotorSensorVelocityCoefficient;
-            m_driveMotor.set(ControlMode.Velocity, velocity, DemandType.ArbitraryFeedForward, feedforward.calculate(speed));
+            double falconVelocity = speed / m_driveMotorSensorVelocityCoefficient;
+            m_commandedSpeedTicksPer100ms = falconVelocity;
+            if (m_driveFeedforward != null) {
+                m_driveMotor.set(ControlMode.Velocity, falconVelocity, DemandType.ArbitraryFeedForward, m_driveFeedforward.calculate(speed));
+            } else {
+                m_driveMotor.set(ControlMode.Velocity, falconVelocity);
+            }
         }
     }
 
@@ -259,7 +285,6 @@ public class SwerveModule {
         Rotation2d angle = (Math.abs(desiredState.speedMetersPerSecond) <= (getMaxVelocity() * 0.01)) ? new Rotation2d(m_referenceAngleRadians) : desiredState.angle; //Prevent rotating module if speed is less then 1%. Prevents Jittering.
         m_steerMotor.set(ControlMode.Position, angle.getRadians() / m_steerMotorSensorPositionCoefficient);
         m_referenceAngleRadians = angle.getRadians();
-        m_commandedAngleRadians = m_referenceAngleRadians;
     }
 
     /**
@@ -271,14 +296,16 @@ public class SwerveModule {
             .withPosition(0, 0);
         container.addNumber("Current Angle", () -> Math.toDegrees(getStateAngle()))
             .withPosition(0, 1);
-        container.addNumber("Commanded Angle", () -> Math.toDegrees(m_commandedAngleRadians))
-            .withPosition(0, 2);
         container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()))
-            .withPosition(0, 3);
+            .withPosition(0, 2);
         container.addNumber("Current Velocity", this::getStateVelocity)
-            .withPosition(0, 4);
+            .withPosition(0, 3);
         container.addNumber("Commanded Velocity", () -> m_commandedSpeedMetersPerSecond)
+            .withPosition(0, 4);
+        container.addNumber("Commanded Falcon Velocity", () -> m_commandedSpeedTicksPer100ms)
             .withPosition(0, 5);
+        container.addNumber("Current Falcon Velocity", m_driveMotor::getSelectedSensorVelocity)
+            .withPosition(0, 6);
     }
 
     /**
@@ -313,7 +340,7 @@ public class SwerveModule {
     public double getStateAngle() {
         double motorAngleRadians = m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
         motorAngleRadians %= 2.0 * Math.PI;
-        if (motorAngleRadians < 0.0) {
+        while (motorAngleRadians < 0.0) {
             motorAngleRadians += 2.0 * Math.PI;
         }
 
@@ -329,51 +356,10 @@ public class SwerveModule {
     }
 
     /**
-     * Set the target angle of the wheel
-     * @param referenceAngleRadians Target / reference angle in radians
-     */
-    public void setReferenceAngle(double referenceAngleRadians) {
-        double currentAngleRadians = m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
-
-        // When the module has not been rotating for a while, reset the motor's position back to the angle read
-        // from the absolute encoder. This seems to be needed when the motors are first enabled, but also helps
-        // with drift over time?
-        if (m_steerMotor.getSelectedSensorVelocity() * m_steerMotorSensorPositionCoefficient < ENCODER_RESET_MAX_ANGULAR_VELOCITY) {
-            if (++resetIteration >= ENCODER_RESET_ITERATIONS) {
-                resetIteration = 0;
-                double absoluteAngle = getAbsoluteAngle();
-                m_steerMotor.setSelectedSensorPosition(absoluteAngle / m_steerMotorSensorPositionCoefficient);
-                currentAngleRadians = absoluteAngle;
-            }
-        } else {
-            resetIteration = 0;
-        }
-
-        double currentAngleRadiansMod = currentAngleRadians % (2.0 * Math.PI);
-        if (currentAngleRadiansMod < 0.0) {
-            currentAngleRadiansMod += 2.0 * Math.PI;
-        }
-
-        // The reference angle has the range [0, 2pi) but the Falcon's encoder can go above that
-        double adjustedReferenceAngleRadians = referenceAngleRadians + currentAngleRadians - currentAngleRadiansMod;
-        if (referenceAngleRadians - currentAngleRadiansMod > Math.PI) {
-            adjustedReferenceAngleRadians -= 2.0 * Math.PI;
-        } else if (referenceAngleRadians - currentAngleRadiansMod < -Math.PI) {
-            adjustedReferenceAngleRadians += 2.0 * Math.PI;
-        }
-        
-        TalonFXControlMode controlMode = m_steerMotorOptions.hasMotionMagic() ? TalonFXControlMode.MotionMagic : TalonFXControlMode.Position;
-        m_steerMotor.set(controlMode, adjustedReferenceAngleRadians / m_steerMotorSensorPositionCoefficient);
-
-        m_referenceAngleRadians = referenceAngleRadians;
-        m_commandedAngleRadians = adjustedReferenceAngleRadians;
-    }
-
-    /**
      * Gets the drive motor free velocity in m/s
      */
     public double getMaxVelocity() {
-        return m_configuration.getDriveMotorFreeSpeedRPM() / 60.0 * m_configuration.getDriveReduction() * m_configuration.getWheelDiameter();
+        return m_configuration.getDriveMotorFreeSpeedRPM() / 60.0 * m_configuration.getDriveReduction() * m_configuration.getWheelDiameter() * Math.PI;
     }
 
     /**
@@ -381,7 +367,7 @@ public class SwerveModule {
      */
     public double getMaxAngularVelocity() {
         // v = rw => w = v / r
-        double linearSpeed =  m_configuration.getSteerMotorFreeSpeedRPM() / 60.0 * m_configuration.getSteerReduction() * m_configuration.getWheelDiameter();
+        double linearSpeed =  m_configuration.getSteerMotorFreeSpeedRPM() / 60.0 * m_configuration.getSteerReduction() * m_configuration.getWheelDiameter() * Math.PI;
         double diameter = Math.hypot(Constants.DriveTrain.kTrackWidthMeters, Constants.DriveTrain.kWheelBaseMeters);
 
         return linearSpeed / diameter / 2.0;

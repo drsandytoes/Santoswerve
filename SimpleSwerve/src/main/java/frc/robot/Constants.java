@@ -7,6 +7,7 @@ package frc.robot;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.util.Units;
 import frc.robot.utils.*;
 
 /**
@@ -31,7 +32,7 @@ public final class Constants {
     public static double kTicksPerRotation = 2048.0;
 
     // Falcon reports velocity in ticks per 100ms.
-    public static double kVelocityTicksPerSecondConversion = 10.0;
+    public static double kVelocityTicksToTicksPerSecond = 10.0;
   }
 
   public static class Operator {
@@ -48,13 +49,13 @@ public final class Constants {
      *
      * Should be measured from center to center.
      */
-    public static final double kTrackWidthMeters = 0.63; // 24.75 in
+    public static final double kTrackWidthMeters = Units.inchesToMeters(24.75); // 24.75 in
     /**
      * The front-to-back distance between the drivetrain wheels.
      *
      * Should be measured from center to center.
      */
-    public static final double kWheelBaseMeters = 0.63; // 24.75 in
+    public static final double kWheelBaseMeters = Units.inchesToMeters(24.75); // 24.75 in
 
     public static final SwerveDriveKinematics kSwerveKinematics = new SwerveDriveKinematics(
       // Front left
@@ -71,7 +72,7 @@ public final class Constants {
     public static final CANDeviceID kPigeonID = new CANDeviceID(1, kCanivoreBusName);
 
     public static final SwerveModuleConfiguration kSwerveConfiguration = new SwerveModuleConfiguration(
-        0.10033,
+        Units.inchesToMeters(4),
         (14.0 / 50.0) * (25.0 / 19.0) * (15.0 / 45.0),
         true,
         (14.0 / 50.0) * (10.0 / 60.0),
@@ -80,14 +81,19 @@ public final class Constants {
         FalconConstants.kFreeSpeedRPM);
 
     public static final SwerveMotorConfiguration kDriveMotorOptions = new SwerveMotorConfiguration()
-        .withCurrentLimit(80.0)
+        // .withContinuousCurrentLimit(35)
+        // .withPeakCurrentLimit(60)
+        // .withPeakCurrentDuration(0.1)
         .withNominalVoltage(12.0)
-        .withMotionMagicContants((1.51 / 12), (0.27 / 12), (0.32 / 12));
+        .withPIDFConstants(0.05, 0.0, 0.0, 0.0);
+        // .withFeedForwardConstants((0.32 / 12), (1.51 / 12), (0.27 / 12));
 
     public static final SwerveMotorConfiguration kSteerMotorOptions = new SwerveMotorConfiguration()
-        .withCurrentLimit(20.0)
+        .withContinuousCurrentLimit(25)
+        .withPeakCurrentLimit(40)
+        .withPeakCurrentDuration(0.1)
         .withNominalVoltage(12.0)
-        .withPIDConstants(0.2, 0.0, 0.1);
+        .withPIDFConstants(0.3, 0.0, 0.0, 0.0);
 
     public static final class SwerveModule {
       public final CANDeviceID driveMotorID;

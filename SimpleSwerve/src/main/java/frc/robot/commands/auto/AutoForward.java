@@ -12,7 +12,7 @@ import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import frc.robot.subsystems.DrivetrainSubsystem;
 
 public class AutoForward extends AutoCommandBase {
-    public static String name = "Forward";
+    public String getName() { return "Forward"; }
 
     /**
      * Autonomous command the drives in a square pattern:
