@@ -137,6 +137,7 @@ public class SwerveModule {
             motorConfiguration.supplyCurrLimit.enable = true;
         }
 
+        m_driveMotor.configFactoryDefault();
         m_driveMotor.configAllSettings(motorConfiguration);
 
         if (m_driveMotorOptions.hasVoltageCompensation()) {
@@ -177,6 +178,7 @@ public class SwerveModule {
             motorConfiguration.supplyCurrLimit.enable = true;
         }
 
+        m_steerMotor.configFactoryDefault();
         m_steerMotor.configAllSettings(motorConfiguration, CAN_TIMEOUT_MS);
 
         if (m_steerMotorOptions.hasVoltageCompensation()) {

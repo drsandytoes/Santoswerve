@@ -28,11 +28,11 @@ public final class Constants {
   }
 
   public static class FalconConstants {
-    public static double kFreeSpeedRPM = 6380.0;
-    public static double kTicksPerRotation = 2048.0;
+    public static final double kFreeSpeedRPM = 6380.0;
+    public static final double kTicksPerRotation = 2048.0;
 
     // Falcon reports velocity in ticks per 100ms.
-    public static double kVelocityTicksToTicksPerSecond = 10.0;
+    public static final double kVelocityTicksToTicksPerSecond = 10.0;
   }
 
   public static class Operator {
