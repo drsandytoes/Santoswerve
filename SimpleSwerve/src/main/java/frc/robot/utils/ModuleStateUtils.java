@@ -25,7 +25,7 @@ public class ModuleStateUtils {
     // could turn the wheel to -45 (45 deg in the other direction) and drive backward at 1m/s.
     if (Math.abs(delta) > Math.PI/2){
         targetSpeed = -targetSpeed;
-        targetAngle = delta > Math.PI/2 ? (targetAngle -= Math.PI) : (targetAngle += Math.PI);
+        targetAngle = delta > Math.PI/2 ? (targetAngle - Math.PI) : (targetAngle + Math.PI);
     }        
     return new SwerveModuleState(targetSpeed, Rotation2d.fromRadians(targetAngle));
   }
@@ -34,61 +34,37 @@ public class ModuleStateUtils {
    * Adjust the target angle to an equivalent angle that is nearest the reference angle.
    * Given the current angle (scopeReference), and the desired target angle (newAngle), compute
    * an equivalent angle that is within pi (180 deg) of the current angle. 
-   * @param scopeReference Current angle (radians)
-   * @param newAngle Target angle (radians)
-   * @return Closest angle within scope (radians)
+   * @param scopeReference double, current angle (radians)
+   * @param newAngle double, target angle (radians)
+   * @return double, closest angle within scope (radians)
    */
   private static double nearestEquivalentAngle(double scopeReference, double newAngle) {
-    double lowerBound;
-    double upperBound;
     double lowerOffset = scopeReference % 2.0*Math.PI;
 
     // Determine the angle range band [lowerBound, upperBound] that scopeReference is in 
     // as a multiple of the [0,2pi] band. 
-    if (lowerOffset >= 0) {
-        // lowerBound is scopeReference/2pi: how many positive wraps around the circle
-        // IOW, the 0 degrees in the multiple of revolutions we're in
-        // e.g., if we were doing math in degrees and the scope reference was 365 deg:
-        //   lowerOffset = 5
-        //   lowerBound = 360
-        //   upperBound = 720
-        //   we're logically in the 360-720 band
-        lowerBound = scopeReference - lowerOffset;
-        // upperBound is lowerBound + 2pi
-        upperBound = scopeReference + (2.0*Math.PI - lowerOffset);
-    } else {
-        // We're in a negative band. And modulus with negative numbers may surprise you.
-        // -90%360 = +270, not -90. To find the modulus, you find the largest integer less than
-        // or equal to -90/360 = -0.25, which would be -1. Now, with -90%360, we have:
-        // 360 * (-1) + <mod> = -90 => <mod> = 360 -  90 => <mod> = 270. That makes sense because
-        // -90 and 270 are 360 deg apart. 
-        // So here, if we were doing math in degrees and the scope reference was -5 deg:
-        //   lowerOffset = 355
-        //   upperBound = -5 - 355 = -360
-        //   lowerBound = -5 - (360 + 355) = -720
-        // MDS: This seems wrong. Wouldn't we want to be in the [-360, 0] band?
-        // And if the scope reference was -450, we'd compute:
-        //   lowerOffset = 270
-        //   upperBound = -450 - 270 = -720
-        //   lowerBound = -450 - (360 + 270) = -450 - 630 = -1080
-        // upperBound = scopeReference - lowerOffset;
-        // lowerBound = scopeReference - (2.0*Math.PI + lowerOffset);
 
-        // MDS: Shouldn't this be the same as the positive case?
-        // So here, if we were doing math in degrees and the scope reference was -5 deg:
-        //   lowerOffset = 355
-        //   lowerBound = -5 - 355 = -360
-        //   upperBound = -5 + (360 - 355) = 0
-        lowerBound = scopeReference - lowerOffset;
-        upperBound = scopeReference + (2.0*Math.PI - lowerOffset);
-        // And if the scope reference was -450, we'd compute:
-        //   lowerOffset = 270
-        //   lowerBound = -450 - 270 = -720
-        //   upperBound = -450 + (360 - 270) = -450 + 90 = --360
-    }
+    // First, a note about modulus math on negative numbers.
+    // -90 % 360 = +270, not -90! To find the modulus x % y, you find the largest integer z less than
+    // or equal to x / y. Then we determine the modulus as the difference x - (z * y).
+    // Here we have -90 / 360 = -0.25, so the largest integer less than or equal to -0.25 is -1. 
+    // So the modulus is -90 - 360 * (-1) => 360 -  90 => 270. That makes sense because
+    // -90 and 270 are 360 deg apart. 
+
+    // lowerBound is scopeReference/2pi: how many positive wraps around the circle
+    // IOW, the 0 degrees in the multiple of revolutions we're in
+    // e.g., if we were doing math in degrees and the scope reference was 365 deg:
+    //   scopeReference = 365           scopeReference = -450
+    //   lowerOffset = 5                lowerOffset = 270
+    //   lowerBound = 360               lowerBound = -450 - 270 = -720
+    //   upperBound = 720               upperBound = -450 + (360 - 270) = -450 + 90 = -360
+    //   logica band: [360,720]         logical band: [-720, -360]
+    double lowerBound = scopeReference - lowerOffset;
+    double upperBound = scopeReference + (2.0*Math.PI - lowerOffset);
 
     // Adjust newAngle so that it's in the range [lowerBound, upperBound]
     // IOW, get newAngle into the same [0,360] band as scopeReference
+    // MDS: Couldn't this be simplified to take the modulus of newAngle and add it to lowerOffset?
     while (newAngle < lowerBound) {
         newAngle += 2.0*Math.PI;
     }
@@ -96,6 +72,9 @@ public class ModuleStateUtils {
         newAngle -= 2.0*Math.PI;
     }
 
+    // Now newAngle is in the same 360 degree band as the reference. However, if it's more than 180 degrees apart, 
+    // there's a closer angle in the band above or below the one scopReference is in. For example, if the
+    // reference angle is 5 degrees, and new angle is 359. -1 degrees is actually closer.
     if (newAngle - scopeReference > Math.PI) {
         // If newAngle is more than pi (180 deg) larger than the reference, substract 2pi (360 deg),
         // as that angle will be less movement
