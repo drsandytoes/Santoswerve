@@ -294,20 +294,11 @@ public class SwerveModule {
      * @param container ShuffleboardContainer to use
      */
     private void addDashboardEntries(ShuffleboardContainer container) {
-        container.addNumber("Absolute Encoder Angle", () -> Math.toDegrees(getAbsoluteAngle()))
-            .withPosition(0, 0);
-        container.addNumber("Current Angle", () -> Math.toDegrees(getStateAngle()))
-            .withPosition(0, 1);
-        container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()))
-            .withPosition(0, 2);
-        container.addNumber("Current Velocity", this::getStateVelocity)
-            .withPosition(0, 3);
-        container.addNumber("Commanded Velocity", () -> m_commandedSpeedMetersPerSecond)
-            .withPosition(0, 4);
-        container.addNumber("Commanded Falcon Velocity", () -> m_commandedSpeedTicksPer100ms)
-            .withPosition(0, 5);
-        container.addNumber("Current Falcon Velocity", m_driveMotor::getSelectedSensorVelocity)
-            .withPosition(0, 6);
+        container.addNumber("Absolute Encoder Angle", () -> Math.toDegrees(getAbsoluteAngle()));
+        container.addNumber("Current Angle", () -> Math.toDegrees(getStateAngle()));
+        container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()));
+        container.addNumber("Current Velocity", this::getStateVelocity);
+        container.addNumber("Commanded Velocity", () -> m_commandedSpeedMetersPerSecond);
     }
 
     /**
@@ -323,8 +314,7 @@ public class SwerveModule {
      * @return Current wheel distance in meters
      */
     public double getStateDistance() {
-        double distance = m_driveMotor.getSelectedSensorPosition() * m_driveMotorSensorPositionCoefficient;
-        return distance;
+        return m_driveMotor.getSelectedSensorPosition() * m_driveMotorSensorPositionCoefficient;
     }
 
     /**
@@ -336,17 +326,12 @@ public class SwerveModule {
     }
 
     /**
-     * Return the current angle of the wheel as measured by the steer motor.
-     * @return Current wheel angle in radians [0, 2*pi]
+     * Returns the raw state angle from the motor. Useful for plotting when trying to debug motor
+     * turning discontinuities.
+     * @return double, raw sensor position in radians
      */
-    public double getStateAngle() {
-        double motorAngleRadians = m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
-        motorAngleRadians %= 2.0 * Math.PI;
-        while (motorAngleRadians < 0.0) {
-            motorAngleRadians += 2.0 * Math.PI;
-        }
-
-        return motorAngleRadians;
+    private double getStateAngle() {
+        return m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
     }
 
     /**
