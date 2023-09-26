@@ -64,13 +64,8 @@ public class ModuleStateUtils {
 
     // Adjust newAngle so that it's in the range [lowerBound, upperBound]
     // IOW, get newAngle into the same [0,360] band as scopeReference
-    // MDS: Couldn't this be simplified to take the modulus of newAngle and add it to lowerOffset?
-    while (newAngle < lowerBound) {
-        newAngle += 2.0*Math.PI;
-    }
-    while (newAngle > upperBound) {
-        newAngle -= 2.0*Math.PI;
-    }
+    // We take the mod of 2pi to get it in the range [0, 2pi] and then add in the lowerBound.
+    newAngle = (newAngle % 2.0*Math.PI) + lowerBound;
 
     // Now newAngle is in the same 360 degree band as the reference. However, if it's more than 180 degrees apart, 
     // there's a closer angle in the band above or below the one scopReference is in. For example, if the

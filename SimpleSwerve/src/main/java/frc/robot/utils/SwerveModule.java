@@ -45,7 +45,6 @@ public class SwerveModule {
 
     private double m_referenceAngleRadians;
     private double m_commandedSpeedMetersPerSecond;
-    private double m_commandedSpeedTicksPer100ms;
 
     private SimpleMotorFeedforward m_driveFeedforward;
 
@@ -269,12 +268,10 @@ public class SwerveModule {
         m_commandedSpeedMetersPerSecond = speed;
         if (isOpenLoop) {
             double percentOutput = speed / getMaxVelocity();
-            m_commandedSpeedTicksPer100ms = 0.0;
             m_driveMotor.set(ControlMode.PercentOutput, percentOutput);
         }
         else {
             double falconVelocity = speed / m_driveMotorSensorVelocityCoefficient;
-            m_commandedSpeedTicksPer100ms = falconVelocity;
             if (m_driveFeedforward != null) {
                 m_driveMotor.set(ControlMode.Velocity, falconVelocity, DemandType.ArbitraryFeedForward, m_driveFeedforward.calculate(speed));
             } else {
