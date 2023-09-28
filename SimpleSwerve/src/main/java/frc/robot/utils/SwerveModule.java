@@ -225,10 +225,7 @@ public class SwerveModule {
      */
     public double getAbsoluteAngle() {
         double angle = Math.toRadians(m_steerEncoder.getAbsolutePosition());
-        angle %= 2.0 * Math.PI;
-        if (angle < 0.0) {
-            angle += 2.0 * Math.PI;
-        }
+        angle = ModuleStateUtils.positiveModulus(angle, 2.0 * Math.PI);
 
         return angle;
     }
@@ -296,6 +293,7 @@ public class SwerveModule {
         container.addNumber("Target Angle", () -> Math.toDegrees(getReferenceAngle()));
         container.addNumber("Current Velocity", this::getStateVelocity);
         container.addNumber("Commanded Velocity", () -> m_commandedSpeedMetersPerSecond);
+        container.addNumber("Abs Unadj Encoder", m_steerEncoder::getAbsolutePosition);
     }
 
     /**

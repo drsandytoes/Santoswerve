@@ -87,7 +87,7 @@ public final class Constants {
         .withPeakCurrentLimit(60)
         .withPeakCurrentDuration(0.1)
         .withNominalVoltage(12.0)
-        .withPIDFConstants(0.08, 0.0, 0.0, 0.046);
+        .withPIDFConstants(0.08, 0.0, 0.0, 0.048);
         // .withFeedForwardConstants((0.64 / 12), (2.0 / 12), (0.27 / 12));
 
     public static final SwerveMotorConfiguration kSteerMotorOptions = new SwerveMotorConfiguration()

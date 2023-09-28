@@ -70,7 +70,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     Constants.DriveTrain.kDriveMotorOptions.integralConstant,
     Constants.DriveTrain.kDriveMotorOptions.derivativeConstant,
     Constants.DriveTrain.kDriveMotorOptions.feedForwardConstant);
-  private SendableVelocityTuningParameters m_tuningParams = new SendableVelocityTuningParameters(2.0, 2.0);
+  private SendableVelocityTuningParameters m_tuningParams = new SendableVelocityTuningParameters(1.0, 2.0);
 
   // By default we use a Pigeon for our gyroscope. But if you use another
   // gyroscope, like a NavX, you can change this.
