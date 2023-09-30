@@ -23,16 +23,95 @@ import frc.robot.Constants;
 import frc.robot.Constants.FalconConstants;
 
 public class SwerveModule {
+    private class FalconMath {
+        private final double m_steerMotorSensorPositionCoefficient;
+        private final double m_steerMotorSensorVelocityCoefficient;
+    
+        private final double m_driveMotorSensorPositionCoefficient;
+        private final double m_driveMotorSensorVelocityCoefficient;
+    
+        public FalconMath(SwerveModuleConfiguration configuration) {
+            // Used to convert the motor's reported position from native units to radians
+            // Falcon's sensor position is in ticks. To convert the reported sensor position to an angle in radians:
+            // radians = sensor-reading * (1 revolution / ticksPerRevolution) * (2pi radians / 1 revolution) * gear reduction
+            m_steerMotorSensorPositionCoefficient = 2.0 * Math.PI / FalconConstants.kTicksPerRotation * m_configuration.getSteerReduction();
+
+            // Used to convert the motor's reported velocity from native units to radians/second
+            m_steerMotorSensorVelocityCoefficient = m_steerMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksToTicksPerSecond;
+
+            // Used to convert the motor's reported position from native units to meters
+            // Falcon's sensor position is in ticks. To conver the reported sensor position to a distance in meters:
+            // meters = sensor-reading * (1 revolution / ticksPerRevolution) * (pi * wheelDiameterInMeters / revolution) * gear reduction
+            m_driveMotorSensorPositionCoefficient = Math.PI * m_configuration.getWheelDiameter() * m_configuration.getDriveReduction() / FalconConstants.kTicksPerRotation;
+
+            // Used to convert the motor's reported velocity from native units to meters/second
+            m_driveMotorSensorVelocityCoefficient = m_driveMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksToTicksPerSecond;
+        }
+
+        /**
+         * Convert a Falcon position (ticks) of the module angle to the
+         * real-world position of the module.
+         * @param falconAngle Falcon ticks of the azimuth motor
+         * @return double, angle of the module (radians)
+         */
+        public double absoluteAngleFromFalconAngle(double falconAngle) {
+            return falconAngle * m_steerMotorSensorPositionCoefficient;
+        }
+
+        /**
+         * Convert an absolute module angle to a falcon angle (position)
+         * @param absAngle Absolute angle in radians
+         * @return double, Falcon ticks corresponding to the angle
+         */
+        public double falconAngleFromAbsoluteAngle(double absAngle) {
+            return absAngle / m_steerMotorSensorPositionCoefficient;
+        }
+
+        /**
+         * Convert a Falcon position (ticks) to a drive position.
+         * @param shaftPosition Falcon rotation (ticks)
+         * @return double, Robot distance (m)
+         */
+        public double drivePositionFromFalconPosition(double shaftPosition) {
+            return shaftPosition * m_driveMotorSensorPositionCoefficient;
+        }
+
+        /**
+         * Convert a drive position to a Falcon position (ticks)
+         * @param drivePosition Distance in m
+         * @return double, Falcon ticks corresponding to the position
+         */
+        public double falconPositionFromDrivePosition(double drivePosition) {
+            return drivePosition / m_driveMotorSensorPositionCoefficient;
+        }
+
+        /**
+         * Convert a Falcon shaft velocity (in Falcon units) to a robot velocity.
+         * @param shaftVelocity shaft velocity (ticks/100ms)
+         * @return double, robot velocity
+         */
+        public double driveVelocityFromFalconVelocity(double shaftVelocity) {
+            return shaftVelocity * m_driveMotorSensorVelocityCoefficient;
+        }
+
+        /**
+         * Convert a robot velocity to a Falcon velocity, adjusting for Falcon's
+         * weird velocity units and the gear ratio.
+         * @param driveVelocity drive velocity in m/s
+         * @return double, Falcon velocity in Falcon velocity units (ticks/100ms)
+         */
+        public double falconVelocityFromDriveVelocity(double driveVelocity) {
+            return driveVelocity / m_driveMotorSensorVelocityCoefficient;
+        }
+
+    }
+
     public final int moduleIndex;
 
     private static final int CAN_TIMEOUT_MS = 250;
     private static final int STATUS_FRAME_GENERAL_PERIOD_MS = 250;
-    
-    private final double m_steerMotorSensorPositionCoefficient;
-    private final double m_steerMotorSensorVelocityCoefficient;
 
-    private final double m_driveMotorSensorPositionCoefficient;
-    private final double m_driveMotorSensorVelocityCoefficient;
+    private final FalconMath m_falconMath;
 
     private WPI_TalonFX m_driveMotor;
     private WPI_TalonFX m_steerMotor;
@@ -60,21 +139,7 @@ public class SwerveModule {
         m_driveMotorOptions = driveMotorOptions;
         m_steerMotorOptions = steerMotorOptions;
 
-        // Used to convert the motor's reported position from native units to radians
-        // Falcon's sensor position is in ticks. To convert the reported sensor position to an angle in radians:
-        // radians = sensor-reading * (1 revolution / ticksPerRevolution) * (2pi radians / 1 revolution) * gear reduction
-        m_steerMotorSensorPositionCoefficient = 2.0 * Math.PI / FalconConstants.kTicksPerRotation * m_configuration.getSteerReduction();
-
-        // Used to convert the motor's reported velocity from native units to radians/second
-        m_steerMotorSensorVelocityCoefficient = m_steerMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksToTicksPerSecond;
-
-        // Used to convert the motor's reported position from native units to meters
-        // Falcon's sensor position is in ticks. To conver the reported sensor position to a distance in meters:
-        // meters = sensor-reading * (1 revolution / ticksPerRevolution) * (pi * wheelDiameterInMeters / revolution) * gear reduction
-        m_driveMotorSensorPositionCoefficient = Math.PI * m_configuration.getWheelDiameter() * m_configuration.getDriveReduction() / FalconConstants.kTicksPerRotation;
-
-        // Used to convert the motor's reported velocity from native units to meters/second
-        m_driveMotorSensorVelocityCoefficient = m_driveMotorSensorPositionCoefficient * FalconConstants.kVelocityTicksToTicksPerSecond;
+        m_falconMath = new FalconMath(configuration);
 
         addDashboardEntries(container);
     }
@@ -195,7 +260,7 @@ public class SwerveModule {
         System.out.println("Init angle: " + currentAngle);
         System.out.println("Init angle: " + Math.toDegrees(currentAngle));
 
-        double sensorPosition = m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
+        double sensorPosition = m_falconMath.absoluteAngleFromFalconAngle(m_steerMotor.getSelectedSensorPosition());
         System.out.println("Post-set motor sensor position: " + Math.toDegrees(sensorPosition));
 
         // Reduce CAN status frame rates
@@ -209,12 +274,23 @@ public class SwerveModule {
      */
     public void resetSteerPositionSensor() {
         double absoluteAngle = getAbsoluteAngle();
-        CtreUtils.checkCtreError(m_steerMotor.setSelectedSensorPosition(absoluteAngle / m_steerMotorSensorPositionCoefficient),
+        double steerMotorAngle = m_falconMath.falconAngleFromAbsoluteAngle(absoluteAngle);
+
+        System.out.println(String.format("Resetting steer position %f (%f deg) => %f (%f deg)", 
+            m_falconMath.falconAngleFromAbsoluteAngle(getStateAngle()),
+            Math.toDegrees(getStateAngle()),
+            steerMotorAngle,
+            Math.toDegrees(absoluteAngle)));
+
+         // Use a timeout forces the call to wait (up to the timeout) for this to happen.
+        CtreUtils.checkCtreError(m_steerMotor.setSelectedSensorPosition(steerMotorAngle, 0, CAN_TIMEOUT_MS),
         "Reset steer motor sensor position");
+
+        System.out.println("Steer position sensor is now: " + m_steerMotor.getSelectedSensorPosition());
     }
 
     public void zeroDrivePositionSensor() {
-        CtreUtils.checkCtreError(m_driveMotor.setSelectedSensorPosition(0),
+        CtreUtils.checkCtreError(m_driveMotor.setSelectedSensorPosition(0, 0, CAN_TIMEOUT_MS),
          "Reset drive motor sensor position");
     }
 
@@ -225,6 +301,8 @@ public class SwerveModule {
      */
     public double getAbsoluteAngle() {
         double angle = Math.toRadians(m_steerEncoder.getAbsolutePosition());
+
+        // This probably isn't necessary. The CANCoder always reports [0, 360]
         angle = ModuleStateUtils.positiveModulus(angle, 2.0 * Math.PI);
 
         return angle;
@@ -268,7 +346,7 @@ public class SwerveModule {
             m_driveMotor.set(ControlMode.PercentOutput, percentOutput);
         }
         else {
-            double falconVelocity = speed / m_driveMotorSensorVelocityCoefficient;
+            double falconVelocity = m_falconMath.falconVelocityFromDriveVelocity(speed);
             if (m_driveFeedforward != null) {
                 m_driveMotor.set(ControlMode.Velocity, falconVelocity, DemandType.ArbitraryFeedForward, m_driveFeedforward.calculate(speed));
             } else {
@@ -279,7 +357,7 @@ public class SwerveModule {
 
     private void setAngle(SwerveModuleState desiredState){
         Rotation2d angle = (Math.abs(desiredState.speedMetersPerSecond) <= (getMaxVelocity() * 0.01)) ? new Rotation2d(m_referenceAngleRadians) : desiredState.angle; //Prevent rotating module if speed is less then 1%. Prevents Jittering.
-        m_steerMotor.set(ControlMode.Position, angle.getRadians() / m_steerMotorSensorPositionCoefficient);
+        m_steerMotor.set(ControlMode.Position, m_falconMath.falconAngleFromAbsoluteAngle(angle.getRadians()));
         m_referenceAngleRadians = angle.getRadians();
     }
 
@@ -301,7 +379,7 @@ public class SwerveModule {
      * @return Current wheel velocity in m/s.
      */
     public double getStateVelocity() {
-        return m_driveMotor.getSelectedSensorVelocity() * m_driveMotorSensorVelocityCoefficient;
+        return m_falconMath.driveVelocityFromFalconVelocity(m_driveMotor.getSelectedSensorVelocity());
     }
 
     /**
@@ -309,7 +387,7 @@ public class SwerveModule {
      * @return Current wheel distance in meters
      */
     public double getStateDistance() {
-        return m_driveMotor.getSelectedSensorPosition() * m_driveMotorSensorPositionCoefficient;
+        return m_falconMath.drivePositionFromFalconPosition(m_driveMotor.getSelectedSensorPosition());
     }
 
     /**
@@ -326,7 +404,7 @@ public class SwerveModule {
      * @return double, raw sensor position in radians
      */
     private double getStateAngle() {
-        return m_steerMotor.getSelectedSensorPosition() * m_steerMotorSensorPositionCoefficient;
+        return m_falconMath.absoluteAngleFromFalconAngle(m_steerMotor.getSelectedSensorPosition());
     }
 
     /**
