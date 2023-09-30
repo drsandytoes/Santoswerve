@@ -80,6 +80,9 @@ public class RobotContainer {
 
     m_controller.button(2).onTrue(new InstantCommand(m_drivetrainSubsystem::resetSteerPositionSensors, m_drivetrainSubsystem)
       .ignoringDisable(true));
+
+    m_controller.button(3).onTrue(new InstantCommand(m_drivetrainSubsystem::windUpModules, m_drivetrainSubsystem)
+      .ignoringDisable(true));
   }
 
   /**

@@ -282,9 +282,11 @@ public class SwerveModule {
             steerMotorAngle,
             Math.toDegrees(absoluteAngle)));
 
-         // Use a timeout forces the call to wait (up to the timeout) for this to happen.
+         // Using a timeout forces the call to wait (up to the timeout) for this to happen.
+        m_referenceAngleRadians = absoluteAngle;
         CtreUtils.checkCtreError(m_steerMotor.setSelectedSensorPosition(steerMotorAngle, 0, CAN_TIMEOUT_MS),
         "Reset steer motor sensor position");
+        m_steerMotor.set(ControlMode.Position, steerMotorAngle);
 
         System.out.println("Steer position sensor is now: " + m_steerMotor.getSelectedSensorPosition());
     }
@@ -353,6 +355,11 @@ public class SwerveModule {
                 m_driveMotor.set(ControlMode.Velocity, falconVelocity);
             }
         }
+    }
+
+    public void setAbsoluteAngle(double angle) {
+        m_referenceAngleRadians = angle;
+        m_steerMotor.set(ControlMode.Position, m_falconMath.falconAngleFromAbsoluteAngle(angle));
     }
 
     private void setAngle(SwerveModuleState desiredState){

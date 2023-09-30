@@ -383,4 +383,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
     var newPose = m_odometry.update(getGyroscopeRotation(), getModulePositions());
     m_field.setRobotPose(newPose);
   }
+
+  public void windUpModules() {
+    for (SwerveModule mod : m_swerveModules) {
+      mod.setAbsoluteAngle(3.0 * 2.0 * Math.PI);
+    }
+  }
+
 }
