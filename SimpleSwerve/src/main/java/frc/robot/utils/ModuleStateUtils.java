@@ -6,24 +6,18 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 public class ModuleStateUtils {
     // First, a note about modulus math on negative numbers:
     // -90 % 360 = +270, not -90! To find the modulus x % y, you find the largest
-    // integer z less than
-    // or equal to x / y. Then we determine the modulus as the difference x - (z *
-    // y).
+    // integer z less than or equal to x / y. Then we determine the modulus as
+    // the difference x - (z * y).
     // Here we have -90 / 360 = -0.25, so the largest integer less than or equal to
-    // -0.25 is -1.
-    // So the modulus is -90 - 360 * (-1) => 360 - 90 => 270. That makes sense
-    // because
-    // -90 and 270 are 360 deg apart.
+    // -0.25 is -1. So the modulus is -90 - 360 * (-1) => 360 - 90 => 270. That
+    // makes sense because -90 and 270 are 360 deg apart.
     //
     // In programming languages, however, they don't always follow the mathematical
-    // definition, and the
-    // sign of the result depends on whether the language uses trunated division or
-    // floored division when
-    // computing the remainder. That results in C/C++/Java getting a different
-    // result from, say, Python.
-    // However, we can adjust for that and always get the positive result by adding
-    // the dividend to the
-    // modulus and taking the modulus again. In other words:
+    // definition, and the sign of the result depends on whether the language uses
+    // trunated division or floored division when computing the remainder. That 
+    // results in C/C++/Java getting a different result from, say, Python. However,
+    // we can adjust for that and always get the positive result by adding the 
+    // dividend to the/ modulus and taking the modulus again. In other words:
     // positiveMod = ((a % b) + b) % b
     public static double positiveModulus(double dividend, double divisor) {
         return ((dividend % divisor) + divisor) % divisor;
