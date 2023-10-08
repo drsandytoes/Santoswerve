@@ -42,8 +42,8 @@ public class DefaultDriveCommand extends CommandBase {
 
         /* Drive */
         m_drivetrainSubsystem.drive(
-                new Translation2d(translationVal, strafeVal),
-                rotationVal,
+                new Translation2d(translationVal, strafeVal).times(DrivetrainSubsystem.getMaxLinearVelocity()),
+                rotationVal * DrivetrainSubsystem.getMaxAngularVelocity(),
                 true,
                 true);
 
