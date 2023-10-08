@@ -64,7 +64,7 @@ public class ModuleStateUtils {
      * @return double, closest angle within scope (radians)
      */
     private static double nearestEquivalentAngle(double scopeReference, double newAngle) {
-        double lowerOffset = positiveModulus(scopeReference, 2.0 * Math.PI);
+         double lowerOffset = positiveModulus(scopeReference, 2.0 * Math.PI);
 
         // Determine the angle range band [lowerBound, upperBound] that scopeReference
         // is in

@@ -27,6 +27,8 @@ import frc.robot.Constants.*;
 import frc.robot.utils.SendablePIDParameters;
 import frc.robot.utils.SendableVelocityTuningParameters;
 import frc.robot.utils.SwerveModule;
+import frc.robot.utils.SwerveModuleIO;
+import frc.robot.utils.SwerveModuleIOFalcon;
 
 public class DrivetrainSubsystem extends SubsystemBase {
   /**
@@ -94,83 +96,40 @@ public class DrivetrainSubsystem extends SubsystemBase {
     driveTrainConstantsTab.addDouble("Max Linear Velocity", () -> MAX_VELOCITY_METERS_PER_SECOND);
     driveTrainConstantsTab.addDouble("Max Angular Velocity", () -> MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND);
 
-    DriveTrain.SwerveModule moduleInfo = DriveTrain.kFrontLeftModule;
-    SwerveModule frontLeftModule = new SwerveModule(
-        0,
-        // This parameter is optional, but will allow you to see the current state of
-        // the module on the dashboard.
-        driveTrainTab.getLayout("Front Left Module", BuiltInLayouts.kList)
-            .withSize(2, 4)
-            .withPosition(0, 0),
+    var moduleInfos = new DriveTrain.SwerveModule[]{DriveTrain.kFrontLeftModule,
+        DriveTrain.kFrontRightModule,
+        DriveTrain.kBackLeftModule,
+        DriveTrain.kBackRightModule};
+    m_swerveModules = new SwerveModule[moduleInfos.length];
+    for (int modIndex = 0; modIndex < moduleInfos.length; modIndex++) {
+        DriveTrain.SwerveModule moduleInfo = moduleInfos[modIndex];
+        SwerveModuleIO moduleIO = new SwerveModuleIOFalcon(DriveTrain.kSwerveConfiguration,
+            DriveTrain.kDriveMotorOptions,
+            DriveTrain.kSteerMotorOptions,
+            moduleInfo.driveMotorID,
+            moduleInfo.steerMotorID,
+            moduleInfo.azimuthEncoderID,
+            moduleInfo.steerOffsetRadians);
 
-        DriveTrain.kSwerveConfiguration,
-        DriveTrain.kDriveMotorOptions,
-        DriveTrain.kSteerMotorOptions,
-        moduleInfo.driveMotorID,
-        moduleInfo.steerMotorID,
-        moduleInfo.azimuthEncoderID,
-        moduleInfo.steerOffsetRadians);
-    frontLeftModule.configure();
-
-    // We will do the same for the other modules
-    moduleInfo = DriveTrain.kFrontRightModule;
-    SwerveModule frontRightModule = new SwerveModule(
-        1,
-        driveTrainTab.getLayout("Front Right Module", BuiltInLayouts.kList)
-            .withSize(2, 4)
-            .withPosition(2, 0),
-        DriveTrain.kSwerveConfiguration,
-        DriveTrain.kDriveMotorOptions,
-        DriveTrain.kSteerMotorOptions,
-        moduleInfo.driveMotorID,
-        moduleInfo.steerMotorID,
-        moduleInfo.azimuthEncoderID,
-        moduleInfo.steerOffsetRadians);
-    frontRightModule.configure();
-
-    moduleInfo = DriveTrain.kBackLeftModule;
-    SwerveModule backLeftModule = new SwerveModule(
-        2,
-        driveTrainTab.getLayout("Back Left Module", BuiltInLayouts.kList)
-            .withSize(2, 4)
-            .withPosition(4, 0),
-        DriveTrain.kSwerveConfiguration,
-        DriveTrain.kDriveMotorOptions,
-        DriveTrain.kSteerMotorOptions,
-        moduleInfo.driveMotorID,
-        moduleInfo.steerMotorID,
-        moduleInfo.azimuthEncoderID,
-        moduleInfo.steerOffsetRadians);
-    backLeftModule.configure();
-
-    moduleInfo = DriveTrain.kBackRightModule;
-    SwerveModule backRightModule = new SwerveModule(
-        3,
-        driveTrainTab.getLayout("Back Right Module", BuiltInLayouts.kList)
-            .withSize(2, 4)
-            .withPosition(6, 0),
-        DriveTrain.kSwerveConfiguration,
-        DriveTrain.kDriveMotorOptions,
-        DriveTrain.kSteerMotorOptions,
-        moduleInfo.driveMotorID,
-        moduleInfo.steerMotorID,
-        moduleInfo.azimuthEncoderID,
-        moduleInfo.steerOffsetRadians);
-    backRightModule.configure();
-
-    m_swerveModules = new SwerveModule[4];
-    m_swerveModules[frontLeftModule.moduleIndex] = frontLeftModule;
-    m_swerveModules[frontRightModule.moduleIndex] = frontRightModule;
-    m_swerveModules[backLeftModule.moduleIndex] = backLeftModule;
-    m_swerveModules[backRightModule.moduleIndex] = backRightModule;
+        m_swerveModules[modIndex] = new SwerveModule(
+            modIndex,
+            moduleIO,
+            DriveTrain.kSwerveConfiguration,
+            DriveTrain.kDriveMotorOptions,
+            DriveTrain.kSteerMotorOptions,
+            // This parameter is optional, but will allow you to see the current state of
+            // the module on the dashboard.
+            driveTrainTab.getLayout(moduleInfo.name, BuiltInLayouts.kList)
+                .withSize(2, 4)
+                .withPosition(0, 0));
+    }
 
     m_odometry = new SwerveDriveOdometry(DriveTrain.kSwerveKinematics, getGyroscopeRotation(), getModulePositions());
     fieldTab.add("Position", m_field)
       .withPosition(0, 0)
       .withSize(9, 5);
 
-      configureTuningTab("Tuning", frontRightModule);
-
+      configureTuningTab("Tuning", m_swerveModules[0]);
 }
 
   private void configureTuningTab(String title, SwerveModule module) {
@@ -187,15 +146,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
     calibrationContainer.add("Tuning", m_tuningParams);
 
     // Add graphs of velocity and distance that can be used when PID tuning
-    tuningTab.addDouble("Velocity", module::getStateVelocity)
-      .withPosition(2, 0)
-      .withSize(6, 3)
-      .withWidget(BuiltInWidgets.kGraph);
+    // tuningTab.addDouble("Velocity", module::getStateVelocity)
+    //   .withPosition(2, 0)
+    //   .withSize(6, 3)
+    //   .withWidget(BuiltInWidgets.kGraph);
 
-    tuningTab.addDouble("Distance", module::getStateDistance)
-      .withPosition(2, 3)
-      .withSize(6, 3)
-      .withWidget(BuiltInWidgets.kGraph);
+    // tuningTab.addDouble("Distance", module::getStateDistance)
+    //   .withPosition(2, 3)
+    //   .withSize(6, 3)
+    //   .withWidget(BuiltInWidgets.kGraph);
   }
 
   public void reconfigurePIDFromDashboard() {
@@ -204,7 +163,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     double kD = m_tuningPID.getDerivativeConstant();
     double kF = m_tuningPID.getFeedForwardConstant();
 
-    DataLogManager.log("Setting PID: " + kP + ", " + kI + ", " + kD + ", " + kF);
+    DataLogManager.log(String.format("Setting PID: kP:%f, kI:%f, kD:%f, kF:%f", kP, kI, kD, kF);
     configureDriveMotorPID(kP, kI, kD, kF);
   }
 
@@ -379,15 +338,20 @@ public class DrivetrainSubsystem extends SubsystemBase {
   }
 
   public void periodic() {
+    // Let each module update their inputs and do whatever other periodic maintenance they need
+    for (SwerveModule mod : m_swerveModules) {
+      mod.periodic();
+    }
+
     // Update pose with odometry
     var newPose = m_odometry.update(getGyroscopeRotation(), getModulePositions());
     m_field.setRobotPose(newPose);
   }
 
   public void windUpModules() {
-    for (SwerveModule mod : m_swerveModules) {
-      mod.setAbsoluteAngle(3.0 * 2.0 * Math.PI);
-    }
+    // for (SwerveModule mod : m_swerveModules) {
+    //   mod.setAbsoluteAngle(3.0 * 2.0 * Math.PI);
+    // }
   }
 
 }

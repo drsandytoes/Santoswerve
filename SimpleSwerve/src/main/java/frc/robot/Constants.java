@@ -98,12 +98,14 @@ public final class Constants {
         .withPIDFConstants(0.3, 0.0, 0.0, 0.0);
 
     public static final class SwerveModule {
+      public String name;
       public final CANDeviceID driveMotorID;
       public final CANDeviceID steerMotorID;
       public final CANDeviceID azimuthEncoderID;
       public final double steerOffsetRadians;
 
-      SwerveModule(CANDeviceID driveMotorID, CANDeviceID steerMotorID, CANDeviceID encoderID, double steerOffset) {
+      SwerveModule(String name, CANDeviceID driveMotorID, CANDeviceID steerMotorID, CANDeviceID encoderID, double steerOffset) {
+        this.name = name;
         this.driveMotorID = driveMotorID;
         this.steerMotorID = steerMotorID;
         this.azimuthEncoderID = encoderID;
@@ -112,22 +114,26 @@ public final class Constants {
     };
 
     public static final SwerveModule kFrontLeftModule = new SwerveModule(
+        "Front Left Module",
         new CANDeviceID(7, kCanivoreBusName),
         new CANDeviceID(8, kCanivoreBusName),
         new CANDeviceID(4, kCanivoreBusName),
         -Math.toRadians(162.158203125)// Set to 0.0. when calibrating
     );
     public static final SwerveModule kFrontRightModule = new SwerveModule(
+        "Front Right Module",
         new CANDeviceID(1, kCanivoreBusName),
         new CANDeviceID(2, kCanivoreBusName),
         new CANDeviceID(1, kCanivoreBusName),
         -Math.toRadians(72.158203125));
     public static final SwerveModule kBackLeftModule = new SwerveModule(
+        "Back Left Module",
         new CANDeviceID(5, kCanivoreBusName),
         new CANDeviceID(6, kCanivoreBusName),
         new CANDeviceID(3, kCanivoreBusName),
         -Math.toRadians(34.887890625000004));
     public static final SwerveModule kBackRightModule = new SwerveModule(
+        "Back Right Module",
         new CANDeviceID(3, kCanivoreBusName),
         new CANDeviceID(4, kCanivoreBusName),
         new CANDeviceID(2, kCanivoreBusName),
