@@ -13,8 +13,6 @@ import com.ctre.phoenix.sensors.CANCoderConfiguration;
 import com.ctre.phoenix.sensors.CANCoderStatusFrame;
 import com.ctre.phoenix.sensors.WPI_CANCoder;
 
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import frc.robot.Constants;
 import frc.robot.Constants.FalconConstants;
 import frc.robot.utils.CANDeviceID;
 import frc.robot.utils.CtreUtils;

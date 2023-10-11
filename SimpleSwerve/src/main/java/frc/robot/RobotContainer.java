@@ -8,7 +8,6 @@ import frc.robot.commands.AutoChooser;
 import frc.robot.commands.DefaultDriveCommand;
 import frc.robot.subsystems.drive.DrivetrainSubsystem;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
