@@ -1,5 +1,7 @@
 package frc.robot.commands;
 
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
+
 import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardContainer;
@@ -11,12 +13,12 @@ import frc.robot.commands.auto.AutoForward;
 import frc.robot.commands.auto.AutoS;
 import frc.robot.commands.auto.AutoSquare;
 import frc.robot.commands.calibration.CalibrationRun;
-import frc.robot.subsystems.DrivetrainSubsystem;
+import frc.robot.subsystems.drive.DrivetrainSubsystem;
 
 public class AutoChooser {
     private ShuffleboardContainer m_autoTab;
-    private SendableChooser<TrajectoryConfig> m_trajectorySpeedChooser;
-    private SendableChooser<AutoCommand> m_pathChooser;
+    private LoggedDashboardChooser<TrajectoryConfig> m_trajectorySpeedChooser;
+    private LoggedDashboardChooser<AutoCommand> m_pathChooser;
 
     private DrivetrainSubsystem m_driveTrain;
 
@@ -25,12 +27,12 @@ public class AutoChooser {
 
         m_autoTab = Shuffleboard.getTab("Auto Config");
 
-        m_trajectorySpeedChooser = new SendableChooser<TrajectoryConfig>();
+        m_trajectorySpeedChooser = new LoggedDashboardChooser<TrajectoryConfig>("Trajectory");
         m_trajectorySpeedChooser.addOption("Slow", slowTrajectoryConfig());
-        m_trajectorySpeedChooser.setDefaultOption("Normal", standardTrajectoryConfig());
+        m_trajectorySpeedChooser.addDefaultOption("Normal", standardTrajectoryConfig());
 
         // Add all of the command classes here
-        m_pathChooser = new SendableChooser<AutoCommand>();
+        m_pathChooser = new LoggedDashboardChooser<AutoCommand>("Auto Path");
         addPath(new AutoSquare(), false);
         addPath(new AutoS(), false);
         addPath(new AutoForward(), false);
@@ -51,18 +53,18 @@ public class AutoChooser {
 
     private void addPath(AutoCommand command, boolean isDefault) {
         if (isDefault) {
-            m_pathChooser.setDefaultOption(command.getName(), command);
+            m_pathChooser.addDefaultOption(command.getName(), command);
         } else {
             m_pathChooser.addOption(command.getName(), command);
         }
     }
 
     public TrajectoryConfig getTrajectoryConfig() {
-        return m_trajectorySpeedChooser.getSelected();
+        return m_trajectorySpeedChooser.get();
     }
 
     public Command getSelectedCommand() {
-        AutoCommand commandFactory = m_pathChooser.getSelected();
+        AutoCommand commandFactory = m_pathChooser.get();
         return commandFactory.createCommand(m_driveTrain, getTrajectoryConfig());
     }
 

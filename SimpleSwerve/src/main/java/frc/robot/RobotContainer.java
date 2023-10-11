@@ -6,7 +6,7 @@ package frc.robot;
 
 import frc.robot.commands.AutoChooser;
 import frc.robot.commands.DefaultDriveCommand;
-import frc.robot.subsystems.DrivetrainSubsystem;
+import frc.robot.subsystems.drive.DrivetrainSubsystem;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.wpilibj.DataLogManager;
@@ -25,12 +25,14 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
-  private final DrivetrainSubsystem m_drivetrainSubsystem = new DrivetrainSubsystem();
+  private final DrivetrainSubsystem m_drivetrainSubsystem;
   private final CommandJoystick m_controller = new CommandJoystick(Constants.Operator.kDriverControllerPort);
   private final AutoChooser m_autoFactory;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
-  public RobotContainer() {
+  public RobotContainer(Boolean isReal) {
+    m_drivetrainSubsystem =  new DrivetrainSubsystem(isReal);
+
     // Log NetworkTables, joystick inputs, and driver station data
     DataLogManager.start();
     DriverStation.startDataLog(DataLogManager.getLog());
@@ -42,9 +44,9 @@ public class RobotContainer {
     
     m_drivetrainSubsystem.setDefaultCommand(new DefaultDriveCommand(
       m_drivetrainSubsystem,
-      () -> -modifyAxis(m_controller.getY()) * DrivetrainSubsystem.getMaxLinearVelocity(),
-      () -> -modifyAxis(m_controller.getX()) * DrivetrainSubsystem.getMaxLinearVelocity(),
-      () -> -modifyAxis(m_controller.getTwist()) * DrivetrainSubsystem.getMaxAngularVelocity()
+      () -> -modifyAxis(m_controller.getY()),
+      () -> -modifyAxis(m_controller.getX()),
+      () -> -modifyAxis(m_controller.getTwist())
     ));
 
     // m_drivetrainSubsystem.setDefaultCommand(new DefaultDriveCommand(

@@ -2,7 +2,7 @@ package frc.robot.commands.calibration;
 
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.wpilibj2.command.CommandBase;
-import frc.robot.subsystems.DrivetrainSubsystem;
+import frc.robot.subsystems.drive.DrivetrainSubsystem;
 
 public class WaitForDistance extends CommandBase {
     private double m_distance = 0.0;

@@ -1,4 +1,4 @@
-package frc.robot.utils;
+package frc.robot.subsystems.drive;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.DemandType;
@@ -16,6 +16,10 @@ import com.ctre.phoenix.sensors.WPI_CANCoder;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import frc.robot.Constants;
 import frc.robot.Constants.FalconConstants;
+import frc.robot.utils.CANDeviceID;
+import frc.robot.utils.CtreUtils;
+import frc.robot.utils.SwerveModuleConfiguration;
+import frc.robot.utils.SwerveMotorConfiguration;
 
 public class SwerveModuleIOFalcon implements SwerveModuleIO {
     private class FalconMath {

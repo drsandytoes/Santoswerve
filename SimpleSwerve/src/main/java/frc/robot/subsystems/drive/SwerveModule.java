@@ -1,4 +1,4 @@
-package frc.robot.utils;
+package frc.robot.subsystems.drive;
 
 import org.littletonrobotics.junction.Logger;
 
@@ -9,7 +9,9 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardContainer;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import frc.robot.Constants;
-import frc.robot.utils.SwerveModuleIO.SwerveModuleIOInputs;
+import frc.robot.utils.ModuleStateUtils;
+import frc.robot.utils.SwerveModuleConfiguration;
+import frc.robot.utils.SwerveMotorConfiguration;
 
 public class SwerveModule {
     public final int moduleIndex;
