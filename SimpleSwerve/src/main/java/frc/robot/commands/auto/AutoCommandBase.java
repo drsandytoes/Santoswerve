@@ -16,7 +16,7 @@ import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import frc.robot.Constants;
 import frc.robot.subsystems.DrivetrainSubsystem;
 
-public abstract class AutoCommandBase implements AutoCommand {
+public abstract class AutoCommand implements AutoCommand {
     protected DrivetrainSubsystem m_driveTrain;
 
     /**

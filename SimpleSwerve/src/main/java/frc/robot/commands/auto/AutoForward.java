@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import frc.robot.subsystems.DrivetrainSubsystem;
 
-public class AutoForward extends AutoCommandBase {
+public class AutoForward extends AutoCommand {
     public String getName() { return "Forward"; }
 
     /**
