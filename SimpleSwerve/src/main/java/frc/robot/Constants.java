@@ -59,13 +59,13 @@ public final class Constants {
 
     public static final SwerveDriveKinematics kSwerveKinematics = new SwerveDriveKinematics(
       // Front left
-      new Translation2d(DriveTrain.kTrackWidthMeters / 2.0, DriveTrain.kWheelBaseMeters / 2.0),
+      new Translation2d(DriveTrain.kWheelBaseMeters / 2.0, DriveTrain.kTrackWidthMeters / 2.0),
       // Front right
-      new Translation2d(DriveTrain.kTrackWidthMeters / 2.0, -DriveTrain.kWheelBaseMeters / 2.0),
+      new Translation2d(DriveTrain.kWheelBaseMeters / 2.0, -DriveTrain.kTrackWidthMeters / 2.0),
       // Back left
-      new Translation2d(-DriveTrain.kTrackWidthMeters / 2.0, DriveTrain.kWheelBaseMeters / 2.0),
+      new Translation2d(-DriveTrain.kWheelBaseMeters / 2.0, DriveTrain.kTrackWidthMeters / 2.0),
       // Back right
-      new Translation2d(-DriveTrain.kTrackWidthMeters / 2.0, -DriveTrain.kWheelBaseMeters / 2.0));
+      new Translation2d(-DriveTrain.kWheelBaseMeters / 2.0, -DriveTrain.kTrackWidthMeters / 2.0));
 
 
 
