@@ -25,12 +25,14 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.ParallelDeadlineGroup;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Constants.OperatorConstants;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -43,6 +45,7 @@ public class RobotContainer {
   private final LEDPanelSubsystem m_ledSubsystem;
   private final LEDRegionSubsystem m_upperHalf;
   private final LEDRegionSubsystem m_lowerHalf;
+  private final CommandXboxController m_controller = new CommandXboxController(OperatorConstants.kDriverControllerPort);
 
   private final CANcoder m_encoder;
 
@@ -60,9 +63,6 @@ public class RobotContainer {
     m_upperHalf = new LEDRegionSubsystem(m_ledSubsystem, Constants.LEDConstants.LEDRegions.kUpperHalf);
     m_lowerHalf = new LEDRegionSubsystem(m_ledSubsystem, Constants.LEDConstants.LEDRegions.kLowerHalf);
 
-    // Configure the trigger bindings
-    configureBindings();
-
     // Configure the Encoder
     m_encoder = new CANcoder(Constants.HardwareConstants.encoderCANID);
     initEncoder();
@@ -75,21 +75,34 @@ public class RobotContainer {
     m_fontManager.addFont(new BitmapFont(new File(deployDirectory, Constants.Fonts.kLargeFontFile)));
     // m_fontManager.addFont(new BitmapFont(new File(deployDirectory, Constants.Fonts.kMediumAltFontFile)));
 
-    // Note: Subsystem default commands must require their subsystem. So at least one of the commands in a 
-    // group assigned to m_ledSubsystem must require it.
-    if (false) {
-      m_ledSubsystem.setDefaultCommand(fontTestCommand());
-    } else {
+    // Configure the trigger bindings
+    configureBindings();
+
+    // // Note: Subsystem default commands must require their subsystem. So at least one of the commands in a 
+    // // group assigned to m_ledSubsystem must require it.
+    // if (true) {
+    //   m_ledSubsystem.setDefaultCommand(fontTestCommand());
+    // } else {
+    //   var smallFont = m_fontManager.getFont(Constants.Fonts.kSmallFontFile);
+    //   m_upperHalf.setDefaultCommand(
+    //     new TextShiftingCommand("Janksters!", () -> m_encoder.getAbsolutePosition().getValueAsDouble(), new Point(0, 0), smallFont, Color.kRed, m_upperHalf)
+    //       .ignoringDisable(true)
+    //   );
+    //   m_lowerHalf.setDefaultCommand(
+    //     new ValueDisplayCommand(() -> m_encoder.getAbsolutePosition().getValueAsDouble(), new Point(0, 0), smallFont, Color.kBlue, m_lowerHalf)
+    //       .ignoringDisable(true)
+    //   );
+    // }
+  }
+
+  public Command scrollingTextCommand() {
       var smallFont = m_fontManager.getFont(Constants.Fonts.kSmallFontFile);
-      m_upperHalf.setDefaultCommand(
-        new TextShiftingCommand("Janksters!", () -> m_encoder.getAbsolutePosition().getValueAsDouble(), new Point(0, 0), smallFont, Color.kRed, m_upperHalf)
-          .ignoringDisable(true)
-      );
-      m_lowerHalf.setDefaultCommand(
+      var commandGroup = new ParallelCommandGroup(
+        new TextShiftingCommand("Janksters!", () -> m_encoder.getAbsolutePosition().getValueAsDouble(), new Point(0, 0), smallFont, Color.kRed, m_upperHalf),
         new ValueDisplayCommand(() -> m_encoder.getAbsolutePosition().getValueAsDouble(), new Point(0, 0), smallFont, Color.kBlue, m_lowerHalf)
-          .ignoringDisable(true)
-      );
-    }
+      ).ignoringDisable(true);
+
+    return commandGroup;
   }
 
   // Requires both half displays as well as the main display subsystem
@@ -106,7 +119,7 @@ public class RobotContainer {
       new ParallelCommandGroup(
         new WaitCommand(2.0),
         new TextCommand("World", new Point(0, 9), smallFont, Color.kGreen, m_ledSubsystem)
-      ),
+      ),      
       new DrawRectangleCommand(new Rectangle(0, 0, m_ledSubsystem.width(), m_ledSubsystem.height()), Color.kBlack, m_ledSubsystem),
       new ParallelCommandGroup(
         new WaitCommand(2.0),
@@ -140,6 +153,18 @@ public class RobotContainer {
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is pressed,
     // cancelling on release.
     // m_joystickController.button(1).whileTrue(new TextCommand("Hello World!", m_ledSubsystem));
+
+    var largeFont = m_fontManager.getFont(Constants.Fonts.kLargeFontFile);
+    m_controller.leftBumper().onTrue(fontTestCommand());
+    m_controller.rightBumper().onTrue(scrollingTextCommand());
+    m_controller.a().onTrue(new SequentialCommandGroup(
+      new InstantCommand(() -> m_ledSubsystem.clearScreen(Color.kBlack), m_ledSubsystem, m_lowerHalf, m_upperHalf),
+      new TextCommand("A", largeFont, Color.kGreen, m_ledSubsystem)
+    ).ignoringDisable(true));
+    m_controller.x().onTrue(new SequentialCommandGroup(
+      new InstantCommand(() -> m_ledSubsystem.clearScreen(Color.kBlack), m_ledSubsystem, m_lowerHalf, m_upperHalf),
+      new TextCommand("X", largeFont, Color.kBlue, m_ledSubsystem)
+    ).ignoringDisable(true));
   }
 
   /**
