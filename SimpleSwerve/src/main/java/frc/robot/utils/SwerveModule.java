@@ -6,21 +6,29 @@ import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.StatusFrameEnhanced;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 import com.ctre.phoenix.motorcontrol.TalonFXInvertType;
-import com.ctre.phoenix.motorcontrol.can.TalonFXConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
-import com.ctre.phoenix.sensors.WPI_CANCoder;
+import com.ctre.phoenix.sensors.AbsoluteSensorRange;
 import com.ctre.phoenix.sensors.CANCoderConfiguration;
 import com.ctre.phoenix.sensors.CANCoderStatusFrame;
-import com.ctre.phoenix.sensors.AbsoluteSensorRange;
+import com.ctre.phoenix6.configs.CANcoderConfiguration;
+import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue;
+import com.ctre.phoenix6.signals.SensorDirectionValue;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj.motorcontrol.Talon;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardContainer;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import frc.robot.Constants;
 import frc.robot.Constants.FalconConstants;
+import frc.robot.Robot;
 
 public class SwerveModule {
     private class FalconMath {
@@ -113,9 +121,16 @@ public class SwerveModule {
 
     private final FalconMath m_falconMath;
 
-    private WPI_TalonFX m_driveMotor;
-    private WPI_TalonFX m_steerMotor;
-    private WPI_CANCoder m_steerEncoder;
+    private TalonFX m_driveMotor;
+    private TalonFX m_steerMotor;
+    private CANcoder m_steerEncoder;
+
+    /* Driver motor control requests */
+    private final DutyCycleOut driveDutyCycle = new DutyCycleOut(0);
+    private final VelocityVoltage driveVelocity = new VelocityVoltage(0);
+
+    /* Aziumuth motor control requests */
+    private final PositionVoltage anglePosition = new PositionVoltage(0);
 
     private double m_steerOffset;
 
@@ -130,9 +145,9 @@ public class SwerveModule {
     public SwerveModule(int moduleIndex, ShuffleboardLayout container, SwerveModuleConfiguration configuration, SwerveMotorConfiguration driveMotorOptions, SwerveMotorConfiguration steerMotorOptions, CANDeviceID driveMotorID, CANDeviceID steerMotorID, CANDeviceID steerEncodeID, double steerOffset) {
         this.moduleIndex = moduleIndex;
 
-        m_driveMotor = new WPI_TalonFX(driveMotorID.id, driveMotorID.bus);
-        m_steerMotor = new WPI_TalonFX(steerMotorID.id, steerMotorID.bus);
-        m_steerEncoder = new WPI_CANCoder(steerEncodeID.id, steerEncodeID.bus);
+        m_driveMotor = new TalonFX(driveMotorID.id, driveMotorID.bus);
+        m_steerMotor = new TalonFX(steerMotorID.id, steerMotorID.bus);
+        m_steerEncoder = new CANcoder(steerEncodeID.id, steerEncodeID.bus);
         m_steerOffset = steerOffset;
         m_configuration = configuration;
 
@@ -151,13 +166,12 @@ public class SwerveModule {
     }
 
     public void configureCANCoder() {
-        CANCoderConfiguration config = new CANCoderConfiguration();
-        config.absoluteSensorRange = AbsoluteSensorRange.Unsigned_0_to_360;
-        config.magnetOffsetDegrees = Math.toDegrees(m_steerOffset);
-        config.sensorDirection = false;
-
-        m_steerEncoder.configAllSettings(config, 250);
-        m_steerEncoder.setStatusFramePeriod(CANCoderStatusFrame.SensorData, 10, 250);
+        CANcoderConfiguration swerveCANcoderConfig = new CANcoderConfiguration();
+        swerveCANcoderConfig.MagnetSensor.SensorDirection = m_configuration.isEncoderPositiveClockwise() ? SensorDirectionValue.Clockwise_Positive : SensorDirectionValue.CounterClockwise_Positive;
+        swerveCANcoderConfig.MagnetSensor.AbsoluteSensorRange = AbsoluteSensorRangeValue.Unsigned_0To1;
+        swerveCANcoderConfig.MagnetSensor.MagnetOffset = m_steerOffset / (2 * Math.PI); // Rotations
+        m_steerEncoder.getAbsolutePosition().setUpdateFrequency(Constants.DriveTrain.kCANcoderUpdateFrequency);
+        m_steerEncoder.getConfigurator().apply(swerveCANcoderConfig);
     }
 
     /**

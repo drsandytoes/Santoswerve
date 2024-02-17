@@ -10,40 +10,125 @@ import java.util.Objects;
  * ({@link SdsModuleConfigurations#MK3_STANDARD} and {@link SdsModuleConfigurations#MK3_FAST} respectively).
  */
 public class SwerveModuleConfiguration {
-    private final double wheelDiameter;
-    private final double driveReduction;
-    private final boolean driveInverted;
+    private double wheelDiameter;
 
-    private final double steerReduction;
-    private final boolean steerInverted;
+    private double driveReduction;
+    private double steerReduction;
 
-    private final double driveMotorFreeSpeedRPM;
-    private final double steerMotorFreeSpeedRPM;
+    private boolean drivePositiveClockwise;
+    private boolean steerPositiveClockwise;
+    private boolean encoderPositiveClockwise;
+
+    private double driveMotorFreeSpeedRPM;
+    private double steerMotorFreeSpeedRPM;
+
+    public SwerveModuleConfiguration() {
+    }
+
+    // /**
+    //  * Creates a new module configuration.
+    //  *
+    //  * @param wheelDiameter  The diameter of the module's wheel in meters.
+    //  * @param driveReduction The overall drive reduction of the module. Multiplying motor rotations by this value
+    //  *                       should result in wheel rotations.
+    //  * @param driveInverted  Whether the drive motor should be inverted. If there is an odd number of gear reductions
+    //  *                       this is typically true.
+    //  * @param steerReduction The overall steer reduction of the module. Multiplying motor rotations by this value
+    //  *                       should result in rotations of the steering pulley.
+    //  * @param steerInverted  Whether the steer motor should be inverted. If there is an odd number of gear reductions
+    //  *                       this is typically true.
+    //  * @param driveMotorFreeSpeed The drive motor's free speed RPM (maximum RPM)
+    //  */
+    // public SwerveModuleConfiguration(double wheelDiameter, double driveReduction, boolean driveInverted,
+    //                            double steerReduction, boolean steerInverted, double driveMotorFreeSpeed,
+    //                            double steerMotorFreeSpeedRPM) {
+    //     this.wheelDiameter = wheelDiameter;
+    //     this.driveReduction = driveReduction;
+    //     this.driveInverted = driveInverted;
+    //     this.steerReduction = steerReduction;
+    //     this.steerInverted = steerInverted;
+    //     this.driveMotorFreeSpeedRPM = driveMotorFreeSpeed;
+    //     this.steerMotorFreeSpeedRPM = steerMotorFreeSpeedRPM;
+    // }
 
     /**
-     * Creates a new module configuration.
-     *
-     * @param wheelDiameter  The diameter of the module's wheel in meters.
-     * @param driveReduction The overall drive reduction of the module. Multiplying motor rotations by this value
-     *                       should result in wheel rotations.
-     * @param driveInverted  Whether the drive motor should be inverted. If there is an odd number of gea reductions
-     *                       this is typically true.
-     * @param steerReduction The overall steer reduction of the module. Multiplying motor rotations by this value
-     *                       should result in rotations of the steering pulley.
-     * @param steerInverted  Whether the steer motor should be inverted. If there is an odd number of gear reductions
-     *                       this is typically true.
-     * @param driveMotorFreeSpeed The drive motor's free speed RPM (maximum RPM)
+     * Builder pattern to set wheel diameter
+     * @param wheelDiameter (meters)
+     * @return SwerveModuleConfiguration
      */
-    public SwerveModuleConfiguration(double wheelDiameter, double driveReduction, boolean driveInverted,
-                               double steerReduction, boolean steerInverted, double driveMotorFreeSpeed,
-                               double steerMotorFreeSpeedRPM) {
+    public SwerveModuleConfiguration withWheelDiameter(double wheelDiameter) {
         this.wheelDiameter = wheelDiameter;
+        return this;
+    }
+
+    /**
+     * Builder pattern to set drive reduction
+     * @param driveReduction 
+     * @return SwerveModuleConfiguration
+     */
+    public SwerveModuleConfiguration withDriveReduction(double driveReduction) {
         this.driveReduction = driveReduction;
-        this.driveInverted = driveInverted;
+        return this;
+    }
+
+    /**
+     * Builder pattern to set steer reduction
+     * @param steerReduction 
+     * @return SwerveModuleConfiguration
+     */
+    public SwerveModuleConfiguration withSteerReduction(double steerReduction) {
         this.steerReduction = steerReduction;
-        this.steerInverted = steerInverted;
+        return this;
+    }
+
+    /**
+     * Builder pattern: free drive motor speed
+     * @param driveMotorFreeSpeed (RPM)
+     * @return SwerveModuleConfiguration
+     */
+    public SwerveModuleConfiguration withDriveMotorFreeSpeed(double driveMotorFreeSpeed) {
         this.driveMotorFreeSpeedRPM = driveMotorFreeSpeed;
-        this.steerMotorFreeSpeedRPM = steerMotorFreeSpeedRPM;
+        return this;
+    }
+
+    /**
+     * Builder pattern: free steer motor speed
+     * @param steerMotorFreeSpeed (RPM)
+     * @return SwerveModuleConfiguration
+     */
+    public SwerveModuleConfiguration withSteerMotorFreeSpeed(double steerMotorFreeSpeed) {
+        this.steerMotorFreeSpeedRPM = steerMotorFreeSpeed;
+        return this;
+    }
+
+    /**
+     * Builder pattern: drive direction
+     * @param drivePositiveClockwise (boolean)
+     * @return SwerveModuleConfiguration
+     */
+    public SwerveModuleConfiguration withDrivePositiveClockwise(boolean drivePositiveClockwise) {
+        this.drivePositiveClockwise = drivePositiveClockwise;
+        return this;
+    }
+
+    /**
+     * Builder pattern: steer direction
+     * @param steerPositiveClockwise (boolean)
+     * @return SwerveModuleConfiguration
+     */
+    public SwerveModuleConfiguration withSteerPositiveClockwise(boolean steerPositiveClockwise) {
+        this.steerPositiveClockwise = steerPositiveClockwise;
+        return this;
+    }
+
+    /**
+     * Builder pattern: encoder inversion
+     * @param encoderPositiveClockwise (boolean)
+     * @return SwerveModuleConfiguration
+     */
+    public SwerveModuleConfiguration withEncoderPositiveClockwise(boolean encoderPositiveClockwise]) {
+        this.encoderPositiveClockwise = encoderPositiveClockwise;
+        return this;
     }
 
     /**
@@ -65,8 +150,8 @@ public class SwerveModuleConfiguration {
     /**
      * Gets if the drive motor should be inverted.
      */
-    public boolean isDriveInverted() {
-        return driveInverted;
+    public boolean isDrivePositiveClockwise() {
+        return drivePositiveClockwise;
     }
 
     /**
@@ -81,8 +166,15 @@ public class SwerveModuleConfiguration {
     /**
      * Gets if the steering motor should be inverted.
      */
-    public boolean isSteerInverted() {
-        return steerInverted;
+    public boolean isSteerPositiveClockwise() {
+        return steerPositiveClockwise;
+    }
+
+    /**
+     * Gest if the encoder should be inverted
+     */
+    public boolean isEncoderPositiveClockwise() {
+        return encoderPositiveClockwise;
     }
 
     /**

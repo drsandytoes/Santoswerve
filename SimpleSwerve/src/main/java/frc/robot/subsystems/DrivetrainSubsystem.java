@@ -4,7 +4,8 @@
 
 package frc.robot.subsystems;
 
-import com.ctre.phoenix.sensors.WPI_Pigeon2;
+import com.ctre.phoenix6.configs.Pigeon2Configuration;
+import com.ctre.phoenix6.hardware.Pigeon2;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -77,7 +78,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
   // The important thing about how you configure your gyroscope is that rotating
   // the robot counter-clockwise should
   // cause the angle reading to increase until it wraps back over to zero.
-  private final WPI_Pigeon2 m_pigeon = new WPI_Pigeon2(DriveTrain.kPigeonID.id, DriveTrain.kPigeonID.bus);
+  private final Pigeon2 m_pigeon = new Pigeon2(DriveTrain.kPigeonID.id, DriveTrain.kPigeonID.bus);
 
   // These are our modules. We initialize them in the constructor.
   private final SwerveModule[] m_swerveModules;
@@ -93,6 +94,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
     driveTrainConstantsTab.addDouble("Max Linear Velocity", () -> MAX_VELOCITY_METERS_PER_SECOND);
     driveTrainConstantsTab.addDouble("Max Angular Velocity", () -> MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND);
+
+    m_pigeon.getConfigurator().apply(new Pigeon2Configuration());
 
     DriveTrain.SwerveModule moduleInfo = DriveTrain.kFrontLeftModule;
     SwerveModule frontLeftModule = new SwerveModule(
@@ -307,7 +310,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
   }
 
   public Rotation2d getGyroscopeRotation() {
-    return Rotation2d.fromDegrees(m_pigeon.getYaw());
+    m_pigeon.getYaw().refresh();
+    return Rotation2d.fromDegrees(m_pigeon.getYaw().getValue());
   }
 
   /**

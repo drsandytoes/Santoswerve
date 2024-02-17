@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import com.ctre.phoenix6.signals.InvertedValue;
+
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
@@ -71,14 +73,17 @@ public final class Constants {
 
     public static final CANDeviceID kPigeonID = new CANDeviceID(1, kCanivoreBusName);
 
-    public static final SwerveModuleConfiguration kSwerveConfiguration = new SwerveModuleConfiguration(
-        Units.inchesToMeters(4),
-        (14.0 / 50.0) * (25.0 / 19.0) * (15.0 / 45.0),
-        true,
-        (14.0 / 50.0) * (10.0 / 60.0),
-        false,
-        FalconConstants.kFreeSpeedRPM,
-        FalconConstants.kFreeSpeedRPM);
+    public static final double kCANcoderUpdateFrequency = 100;
+
+    public static final SwerveModuleConfiguration = new SwerveModuleConfiguration()
+      .withWheelDiameter(Units.inchesToMeters(4))
+      .withDriveReduction((14.0 / 50.0) * (25.0 / 19.0) * (15.0 / 45.0))
+      .withDrivePositiveClockwise(false)
+      .withSteerReduction((14.0 / 50.0) * (10.0 / 60.0))
+      .withSteerPositiveClockwise(true)
+      .withDriveMotorFreeSpeed(FalconConstants.kFreeSpeedRPM)
+      .withSteerMotorFreeSpeed(FalconConstants.kFreeSpeedRPM)
+      .withEncoderPositiveClockwise(false);
 
     // kF ~ 0.046 @ 0.5m/s (decent @ 1.0m/s)
     // kP ~ 0.08
