@@ -23,7 +23,7 @@ public class BitmapDrawing {
      * Draws an image (or what fits of it) onto the drawing context
      * @param image BufferedImage to display
      */
-    public void setImage(BufferedImage image, BitmapDrawingContext context) {
+    static public void setImage(BufferedImage image, BitmapDrawingContext context) {
         // Constrain output to actual dimensions
         int imageWidth = image.getWidth();
         int imageHeight = image.getHeight();

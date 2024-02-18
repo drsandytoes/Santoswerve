@@ -39,7 +39,7 @@ public class TextCommand extends Command {
      * @param color The color to use for drawing
      * @param panelSubsystem The LEDPanelSubsystem to use
      */
-    public <T extends Subsystem, BitmapDrawinContext> TextCommand(String text, Point origin, BitmapFont font, Color color, T subsystem) {
+    public <T extends Subsystem & BitmapDrawingContext> TextCommand(String text, Point origin, BitmapFont font, Color color, T subsystem) {
         m_ledSubsystem = (BitmapDrawingContext)subsystem;
         m_text = text;
         m_font = font;

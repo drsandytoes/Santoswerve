@@ -58,7 +58,7 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     m_ledSubsystem = new LEDPanelSubsystem(Constants.LEDConstants.kMatrixWidth, Constants.LEDConstants.kMatrixHeight, Constants.LEDConstants.kLEDPWMPin);
-    m_ledSubsystem.brightness = 0.10;
+    m_ledSubsystem.brightness = Constants.LEDConstants.kBrightness;
 
     m_upperHalf = new LEDRegionSubsystem(m_ledSubsystem, Constants.LEDConstants.LEDRegions.kUpperHalf);
     m_lowerHalf = new LEDRegionSubsystem(m_ledSubsystem, Constants.LEDConstants.LEDRegions.kLowerHalf);

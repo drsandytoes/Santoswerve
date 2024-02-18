@@ -2,6 +2,7 @@ package org.janksters.ExampleCommonClasses.Commands;
 
 import java.util.function.DoubleSupplier;
 
+import org.janksters.ExampleCommonClasses.Drawing.BitmapDrawingContext;
 import org.janksters.ExampleCommonClasses.Drawing.BitmapFont;
 import org.janksters.ExampleCommonClasses.Drawing.Point;
 
@@ -12,7 +13,7 @@ public class TextShiftingCommand extends TextCommand {
     protected DoubleSupplier m_supplier;
     protected int m_stringPixelWidth = 0;
 
-    public <T extends Subsystem, BitmapDrawinContext> TextShiftingCommand(String text, DoubleSupplier offsetSupplier, Point origin, BitmapFont font, Color color, T subsystem) {
+    public <T extends Subsystem & BitmapDrawingContext> TextShiftingCommand(String text, DoubleSupplier offsetSupplier, Point origin, BitmapFont font, Color color, T subsystem) {
         super(text, origin, font, color, subsystem);
         m_supplier = offsetSupplier;
         m_stringPixelWidth = font.bounds(text).width;

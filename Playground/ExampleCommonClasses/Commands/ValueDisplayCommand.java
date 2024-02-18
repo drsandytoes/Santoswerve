@@ -2,6 +2,7 @@ package org.janksters.ExampleCommonClasses.Commands;
 
 import java.util.function.Supplier;
 
+import org.janksters.ExampleCommonClasses.Drawing.BitmapDrawingContext;
 import org.janksters.ExampleCommonClasses.Drawing.BitmapFont;
 import org.janksters.ExampleCommonClasses.Drawing.Point;
 
@@ -11,7 +12,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 public class ValueDisplayCommand extends TextCommand {
     protected Supplier<Number> m_supplier;
 
-    public <T extends Subsystem, BitmapDrawinContext> ValueDisplayCommand(Supplier<Number> supplier, Point origin, BitmapFont font, Color color, T subsystem) {
+    public <T extends Subsystem & BitmapDrawingContext> ValueDisplayCommand(Supplier<Number> supplier, Point origin, BitmapFont font, Color color, T subsystem) {
         super("", origin, font, color, subsystem);
         m_supplier = supplier;
     }
