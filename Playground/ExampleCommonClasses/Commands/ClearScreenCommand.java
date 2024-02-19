@@ -10,6 +10,8 @@ public class ClearScreenCommand extends Command {
     private BitmapDrawingContext context;
 
     public  <T extends Subsystem & BitmapDrawingContext> ClearScreenCommand(T subsystem) {
+        context = subsystem;
+        
         addRequirements(subsystem);
     }
 
